@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Random Tuesday Simulator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=VT323&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="StartingPage.css"/>
+</head>
+<body>
+
+  <!-- BACKGROUND LAYERS -->
+  <div class="bg-layer bg-grid"></div>
+  <div class="bg-noise"></div>
+  <div class="floaters" id="floaters"></div>
+  <div class="scanlines"></div>
+
+  <!-- TAPE STRIPS -->
+  <div class="tape tape-top">⚠ WARNING: This simulator may cause a sudden spike in criminal ambition ⚠</div>
+  <div class="tape tape-bottom">💸 Not recommended for reasonable people • IRS agents • Or overly trusting pigeons 💸</div>
+
+  <!-- MAIN SCREEN -->
+  <main class="screen">
+    <div class="receipt">
+
+      <div class="sticker">🤑<br>100%<br>LEGAL*<br><span style="font-size:0.45rem">*not at all</span></div>
+
+      <p class="receipt-header">— Welcome to the —</p>
+      <hr class="dashes">
+
+      <div class="title-wrap">
+        <span class="title-main">RANDOM<br>TUESDAY<br>SIMULATOR</span>
+        <span class="title-sub">✦ The Broke Person's Guide to Success ✦</span>
+      </div>
+
+      <hr class="dashes">
+      <p class="tagline">[ BANK ACCOUNT: -$3.47 | DIGNITY: NOT FOUND ]</p>
+
+      <div class="menu-buttons">
+        <button class="btn btn-play" onclick="startGame()">
+          <span>💰 PLAY</span>
+        </button>
+        <button class="btn" onclick="openModal('controls')">
+          <span class="btn-icon">🕹️</span> Controls
+        </button>
+        <button class="btn" onclick="openModal('credits')">
+          <span class="btn-icon">🎬</span> Credits
+        </button>
+        <button class="btn" onclick="openQuit()">
+          <span class="btn-icon">🚪</span> Quit
+        </button>
+      </div>
+
+      <p class="receipt-footer">© 2025 BreakingBad Indie Studio • v0.0.1-alpha-yolo • No pigeons were harmed*<br>*one was</p>
+    </div>
+  </main>
+
+  <!-- MODAL: CONTROLS -->
+  <div class="modal-overlay" id="modal-controls">
+    <div class="modal-box">
+      <button class="btn-close" onclick="closeModal('controls')">✕</button>
+      <div class="modal-title">🕹️ CONTROLS</div>
+      <div class="modal-body">
+        <p><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> — Move (or flee the police)</p>
+        <p><span class="key">E</span> — Interact (pick up, talk, scam)</p>
+        <p><span class="key">ESC</span> — Pause (to reconsider your life choices)</p>
+        <hr class="dashes">
+        <p><strong>Pro tip:</strong> Pressing <span class="key">E</span> in front of an ATM for long enough does nothing. It's just an ATM.</p>
+        <p style="opacity:0.5;font-size:0.75rem;margin-top:1rem">* Developers are not responsible for any damage to your social reputation.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CREDITS -->
+  <div class="modal-overlay" id="modal-credits">
+    <div class="modal-box">
+      <button class="btn-close" onclick="closeModal('credits')">✕</button>
+      <div class="modal-title">🎬 CREDITS</div>
+      <div class="modal-body">
+        <p><strong>Art Direction</strong><br>The guy who cut the office Wi-Fi</p>
+        <p><strong>Game Design</strong><br>Inspired by an actual Tuesday</p>
+        <p><strong>Music</strong><br>The upstairs neighbor at 3am</p>
+        <p><strong>QA Testing</strong><br>My cat (walked on the keyboard)</p>
+        <p><strong>Legal Consultant</strong><br>Mr. Johnson (on the run since 2023)</p>
+        <p><strong>Investors</strong><br>Dad, if you're reading this, give me back my $200</p>
+        <hr class="dashes">
+        <p style="text-align:center;font-family:'Permanent Marker',cursive;font-size:1.1rem">Made with 💸, despair, and way too much coffee</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIT OVERLAY -->
+  <div id="quit-overlay">
+    <div class="quit-text">RETURNING TO POVERTY...</div>
+    <div class="quit-sub">( Press any key to not quit )</div>
+  </div>
+
+  <script src="StartingPage.js"></script>
+</body>
+</html>
