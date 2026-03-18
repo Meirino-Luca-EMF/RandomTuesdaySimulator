@@ -1040,6 +1040,18 @@ let player={
   money:loadMoney(),dignity:0,inventory:[],weapon:null,
 };
 
+/* ══════ TRIP STATE ══════ */
+let tripActive=false, tripTimer=0;
+const TRIP_DURATION=15;
+const TRIP_MESSAGES=[
+  '"kevin...?"','"the floor is breathing"','"am i the rat"',
+  '"RENT IS A SOCIAL CONSTRUCT"','"the walls know your name"',
+  '"gerald was real"','"tuesday. always tuesday."',
+  '"kevin sees you too"','"the coin... it was never real"',
+  '"i can taste the wallpaper"',
+];
+let tripMsgTimer=0, tripMsgIdx=0, tripMsgVisible=false;
+
 /* ══════ INPUT / STATE ══════ */
 const keys={};
 let pendingPickup=null,pendingCoin=false;
@@ -1050,6 +1062,9 @@ document.addEventListener('keydown',e=>{
     else tryInteract();
   }
   if(e.key.toLowerCase()==='q') toggleInventory();
+  if(e.key.toLowerCase()==='f'){
+    if(gameState==='inventory'||gameState==='playing') tryConsumeItem();
+  }
   if(e.key==='Escape') togglePause();
 });
 document.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
@@ -1109,6 +1124,11 @@ function gameLoop(ts){
   if(kevinHitTimer>0) kevinHitTimer=Math.max(0,kevinHitTimer-dt*8);
   if(kevinDeathTimer>=0) kevinDeathTimer+=dt*60;
   if(player.attackTimer>0) player.attackTimer=Math.max(0,player.attackTimer-dt*8);
+  if(tripActive){
+    tripTimer+=dt; tripMsgTimer+=dt;
+    if(tripMsgTimer>2.2){ tripMsgTimer=0; tripMsgVisible=true; tripMsgIdx=Math.floor(Math.random()*TRIP_MESSAGES.length); }
+    if(tripTimer>=TRIP_DURATION){ tripActive=false; tripTimer=0; tripMsgVisible=false; }
+  }
   if(isDead){ deathTimer+=dt; }
   drawWorld(); drawUI();
   if(isDead) drawDeathScreen();
@@ -1211,6 +1231,21 @@ function tryInteract(){
     showDialog(null,['"The door. The OUTSIDE."','"Walk into it to leave."']);
 }
 
+function tryConsumeItem(){
+  const idx=player.inventory.findIndex(i=>i.id==='strange_water');
+  if(idx===-1) return;
+  player.inventory.splice(idx,1);
+  player.weapon=player.inventory.find(i=>i.isWeapon)?.id||null;
+  saveGameState();
+  if(gameState==='inventory') gameState='playing';
+  tripActive=true; tripTimer=0; tripMsgTimer=0; tripMsgIdx=0; tripMsgVisible=false;
+  showDialog(null,[
+    '"You drink the Strange Water."',
+    '"It tastes like battery acid and nostalgia."',
+    '"Something shifts in the apartment."',
+  ]);
+}
+
 function showDialog(obj,lines){
   if(gameState==='dialog') return;
   dialogObj=obj; dialogQueue=lines; dialogIdx=0; gameState='dialog';
@@ -1269,6 +1304,75 @@ function drawWorld(){
   if(player.attackTimer>0.3) drawSlash();
   // Door glow pulse
   drawDoorGlow();
+  if(tripActive) drawRoomTripEffect();
+}
+
+function drawRoomTripEffect(){
+  const t=Date.now()/1000;
+  const prog=tripTimer/TRIP_DURATION;
+  const intensity=prog<0.15?(prog/0.15):(prog>0.8?((1-prog)/0.2):1);
+  const W=canvas.width, H=canvas.height;
+
+  ctx.save();
+
+  // Chromatic aberration overlay
+  const offX=Math.sin(t*2.1)*SCALE*3*intensity;
+  const offY=Math.cos(t*1.7)*SCALE*2*intensity;
+  ctx.globalCompositeOperation='screen';
+  ctx.globalAlpha=0.15*intensity;
+  ctx.fillStyle='#ff0040'; ctx.fillRect(offX,offY,W,H);
+  ctx.fillStyle='#0040ff'; ctx.fillRect(-offX,-offY,W,H);
+  ctx.globalCompositeOperation='source-over';
+  ctx.globalAlpha=1;
+
+  // Colour wave bands
+  for(let y=0;y<H;y+=SCALE*4){
+    const shift=Math.sin(t*3+y*0.04)*SCALE*2*intensity;
+    ctx.globalAlpha=0.035*intensity;
+    ctx.fillStyle=`hsl(${(y*2+t*60)%360},80%,60%)`;
+    ctx.fillRect(shift,y,W,SCALE*2);
+  }
+  ctx.globalAlpha=1;
+
+  // Ghost Kevins drifting through the room
+  const numGhosts=Math.floor(3*intensity)+1;
+  for(let g=0;g<numGhosts;g++){
+    const gx=(Math.sin(t*0.7+g*2.4)*0.4+0.5)*W;
+    const gy=(Math.cos(t*0.5+g*1.9)*0.35+0.5)*H;
+    const gs=SCALE*(2+Math.sin(t*0.9+g)*1);
+    ctx.save(); ctx.translate(gx,gy); ctx.scale(gs,gs);
+    ctx.globalAlpha=0.2*intensity;
+    ctx.fillStyle='#80ff80';
+    ctx.fillRect(-5,-8,10,9); ctx.fillRect(-8,-12,4,5);
+    ctx.fillRect(-9,-14,2,4); ctx.fillRect(-6,-14,2,4);
+    ctx.fillRect(-8,-11,2,2);
+    ctx.restore();
+  }
+  ctx.globalAlpha=1;
+
+  // Green vignette pulse
+  const vig=ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.85);
+  const vigAlpha=(0.35+0.25*Math.sin(t*1.5))*intensity;
+  vig.addColorStop(0,'rgba(0,80,0,0)');
+  vig.addColorStop(1,`rgba(0,40,20,${vigAlpha})`);
+  ctx.fillStyle=vig; ctx.fillRect(0,0,W,H);
+
+  // Creepy floating message
+  if(tripMsgVisible){
+    const msgAlpha=Math.min(1,(1-Math.abs(tripMsgTimer-1.1)/1.1))*intensity;
+    ctx.globalAlpha=msgAlpha;
+    ctx.font=`bold ${SCALE*5}px "Permanent Marker",cursive`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(0,255,80,0.9)';
+    ctx.fillText(TRIP_MESSAGES[tripMsgIdx],W/2,H/2+Math.sin(t*2)*SCALE*8);
+    ctx.globalAlpha=1;
+  }
+
+  // Progress bar
+  ctx.fillStyle='rgba(0,255,80,0.3)';
+  ctx.fillRect(0,0,(1-prog)*W,SCALE);
+
+  ctx.restore();
 }
 
 function drawDoorGlow(){
@@ -1653,6 +1757,13 @@ function drawHUD(){
   uiCtx.fillText(`☠ DIGNITY: ${player.dignity}%`,pad+150,25);
   if(player.weapon){uiCtx.fillStyle='#ff6040';uiCtx.fillText(`⚔ ${player.inventory.find(i=>i.id===player.weapon)?.name||''}`,pad+360,25);}
   if(!kevinAlive){uiCtx.fillStyle='rgba(255,80,40,0.7)';uiCtx.font='10px "IBM Plex Mono",monospace';uiCtx.fillText('☠ Kevin: DEFEATED',pad+580,25);}
+  if(tripActive){
+    const trem=Math.ceil(TRIP_DURATION-tripTimer);
+    uiCtx.fillStyle=`hsl(${Date.now()/20%360},80%,65%)`;
+    uiCtx.font='bold 13px "IBM Plex Mono",monospace';
+    uiCtx.textAlign='left';
+    uiCtx.fillText(`👁 SEEING THINGS (${trem}s)`,pad+700,25);
+  }
   uiCtx.textAlign='right';uiCtx.fillStyle='rgba(255,255,255,0.3)';uiCtx.font='10px "IBM Plex Mono",monospace';
   uiCtx.fillText('[E] Interact  [Q] Inventory  [ESC] Pause',W-pad,25);
 }

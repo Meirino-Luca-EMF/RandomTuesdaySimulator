@@ -131,6 +131,132 @@
     }
   });
 
+  /* DEALER NPC */
+  let npcSold = _initState.strangeWaterBought === true;
+  let shopPending = false;
+  let shopConfirmPending = false;
+  SOBJECTS.push({
+    tx:16,ty:5,w:1,h:1, isNpc:true, hx:16,hy:5,hw:1,hh:1, label:'??? (stranger)',
+    get lines(){
+      if(npcSold) return [
+        '"You again."',
+        '"No refunds. No returns. No regrets... well, maybe some regrets."',
+        '"Come back next Tuesday. Maybe."',
+      ];
+      return [
+        '"Psst. Hey. YOU."',
+        '"I got something special. Limited stock."',
+        '"Strange Water. €3. Makes you see... Things."',
+        '"You in? (E to buy / walk away to decline)"',
+      ];
+    },
+    draw(ctx){
+      const t = Date.now();
+      const bob = Math.sin(t/600)*SCALE*0.8;
+      ctx.save(); ctx.translate(0, bob);
+
+      // Shadow
+      ctx.globalAlpha=0.18; ctx.fillStyle='#000';
+      ctx.beginPath(); ctx.ellipse(S/2, S*0.92, S*0.28, S*0.065, 0, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+
+      const p=SCALE;
+
+      // Legs — dark trousers
+      ctx.fillStyle='#1a1428';
+      ctx.fillRect(-4*p, 4*p, 3*p, 8*p);
+      ctx.fillRect(1*p, 4*p, 3*p, 8*p);
+      // Shoes — pointy
+      ctx.fillStyle='#0a0808';
+      ctx.fillRect(-6*p,12*p,6*p,3*p);
+      ctx.fillRect(1*p,12*p,6*p,3*p);
+      ctx.fillStyle='rgba(255,255,255,0.07)';
+      ctx.fillRect(-6*p,12*p,3*p,SCALE);
+      ctx.fillRect(1*p,12*p,3*p,SCALE);
+
+      // Coat — long dark purple trenchcoat
+      ctx.fillStyle='#1e0e2e';
+      ctx.fillRect(-6*p,-8*p,12*p,14*p);
+      ctx.fillStyle='#2a1240';
+      ctx.fillRect(-6*p,-8*p,3*p,8*p);
+      ctx.fillRect(3*p,-8*p,3*p,8*p);
+      // Coat collar
+      ctx.fillStyle='#140828';
+      ctx.fillRect(-5*p,-8*p,4*p,5*p);
+      ctx.fillRect(1*p,-8*p,4*p,5*p);
+      // Coat shine strip
+      ctx.fillStyle='rgba(255,200,255,0.06)';
+      ctx.fillRect(-6*p,-8*p,2*p,14*p);
+
+      // Arms
+      ctx.fillStyle='#1e0e2e';
+      ctx.fillRect(-9*p,-6*p,4*p,10*p);
+      ctx.fillRect(5*p,-6*p,4*p,10*p);
+      // Hands
+      ctx.fillStyle='#c0a878';
+      ctx.fillRect(-9*p,3*p,4*p,3*p);
+      ctx.fillRect(5*p,3*p,4*p,3*p);
+
+      // Bottle in left hand — green glowing Strange Water
+      ctx.save(); ctx.translate(-11*p, 1*p);
+      const glow = 0.4+0.3*Math.sin(t/300);
+      ctx.globalAlpha=glow*0.5; ctx.fillStyle='#40ff80';
+      ctx.beginPath(); ctx.arc(0,0,p*4,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+      ctx.fillStyle='#1a6028'; ctx.fillRect(-p*2,-p*5,p*4,p*9);
+      ctx.fillStyle='#2a8838'; ctx.fillRect(-p*2,-p*5,p*2,p*9);
+      ctx.fillStyle='#40cc60'; ctx.fillRect(-p*2,-p*5,p*4,p*3);
+      ctx.fillStyle='rgba(100,255,120,0.6)'; ctx.fillRect(-p*2,-p*4,p*2,p*3);
+      ctx.fillStyle='#888'; ctx.fillRect(-p,-p*7,p*2,p*2);
+      ctx.restore();
+
+      // Neck
+      ctx.fillStyle='#c0a878';
+      ctx.fillRect(-2*p,-9*p,4*p,2*p);
+
+      // Head
+      ctx.fillStyle='#b89868';
+      ctx.fillRect(-5*p,-18*p,10*p,9*p);
+      ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(-5*p,-10*p,10*p,2*p);
+      ctx.fillStyle='rgba(255,200,120,0.15)'; ctx.fillRect(-5*p,-18*p,10*p,3*p);
+
+      // Hat — wide brim fedora
+      ctx.fillStyle='#0e0818';
+      ctx.fillRect(-7*p,-22*p,14*p,3*p); // brim
+      ctx.fillRect(-4*p,-28*p,8*p,7*p);  // crown
+      ctx.fillStyle='#2a1848';
+      ctx.fillRect(-4*p,-28*p,4*p,7*p);
+      ctx.fillStyle='rgba(255,200,80,0.25)'; // hat band
+      ctx.fillRect(-4*p,-22*p,8*p,p);
+
+      // Face — shaded eyes
+      ctx.fillStyle='#1a0a20';
+      ctx.fillRect(-4*p,-17*p,3*p,3*p);
+      ctx.fillRect(1*p,-17*p,3*p,3*p);
+      // Glowing pupils
+      ctx.fillStyle='rgba(80,255,120,0.9)';
+      ctx.fillRect(-3*p,-16*p,2*p,2*p);
+      ctx.fillRect(1*p,-16*p,2*p,2*p);
+      ctx.fillStyle='rgba(200,255,200,0.7)';
+      ctx.fillRect(-3*p,-16*p,p,p);
+      ctx.fillRect(1*p,-16*p,p,p);
+      // Smirk
+      ctx.fillStyle='#6a4820';
+      ctx.fillRect(-3*p,-13*p,7*p,p);
+      ctx.fillRect(2*p,-12*p,2*p,p);
+
+      // Mysterious floating question mark above head
+      ctx.globalAlpha=0.6+0.4*Math.sin(t/400);
+      ctx.fillStyle='#ffe600';
+      ctx.font=`bold ${p*4}px monospace`;
+      ctx.textAlign='center'; ctx.textBaseline='bottom';
+      ctx.fillText('?', 0, -28*p - p*2);
+      ctx.globalAlpha=1;
+
+      ctx.restore();
+    }
+  });
+
   /* TRASH BIN */
   SOBJECTS.push({
     tx:13,ty:4,w:1,h:1, hx:13,hy:4,hw:1,hh:1, label:'Trash Bin',
@@ -167,6 +293,24 @@
     }
   });
 
+  /* Strange Water effect state */
+  let tripActive = false;
+  let tripTimer = 0;
+  const TRIP_DURATION = 15; // seconds
+  const TRIP_MESSAGES = [
+    '"kevin...?"',
+    '"the floor is breathing"',
+    '"am i the rat"',
+    '"RENT IS A SOCIAL CONSTRUCT"',
+    '"the walls know your name"',
+    '"gerald was real"',
+    '"tuesday. always tuesday."',
+    '"kevin sees you too"',
+    '"the coin... it was never real"',
+    '"i can taste the wallpaper"',
+  ];
+  let tripMsgTimer=0, tripMsgIdx=0, tripMsgVisible=false;
+
   /* Player */
   let sp={
     tx:11.5, ty:4.5,
@@ -179,11 +323,35 @@
   let sdialogQueue=[],sdialogIdx=0,sdialogObj=null;
   let sCoinPending=false;
 
+  function tryConsumeStrangeWater(){
+    const idx=sp.inventory.findIndex(i=>i.id==='strange_water');
+    if(idx===-1){ sShowDialog(null,['"No Strange Water in inventory."']); return; }
+    sp.inventory.splice(idx,1);
+    saveStreetState({money:sp.money,inventory:sp.inventory,weapon:sp.weapon,strangeWaterBought:npcSold});
+    tripActive=true; tripTimer=0; tripMsgTimer=0; tripMsgIdx=0; tripMsgVisible=false;
+    sShowDialog(null,[
+      '"You drink it."',
+      '"It tastes like battery acid and nostalgia."',
+      '"Something shifts."',
+    ]);
+  }
+
+  let sinventoryOpen=false;
   document.addEventListener('keydown',e=>{
     skeys[e.key.toLowerCase()]=true;
     if(e.key.toLowerCase()==='e'){
       if(sGameState==='dialog') sAdvanceDialog();
+      else if(sinventoryOpen){ sinventoryOpen=false; sGameState='playing'; }
       else sTryInteract();
+    }
+    if(e.key.toLowerCase()==='q'){
+      if(sGameState==='dialog') return;
+      if(sinventoryOpen){ sinventoryOpen=false; sGameState='playing'; }
+      else { sinventoryOpen=true; sGameState='inventory'; }
+    }
+    if(e.key.toLowerCase()==='f'){
+      // F = use/consume selected item (Strange Water)
+      if(sGameState==='inventory'||sGameState==='playing') tryConsumeStrangeWater();
     }
     if(e.key==='Escape') toggleSPause();
   });
@@ -243,7 +411,14 @@
   function sGameLoop(ts){
     const dt=Math.min((ts-sLastTime)/1000,0.05); sLastTime=ts;
     if(sGameState==='playing') sUpdatePlayer(dt);
+    if(tripActive){
+      tripTimer+=dt;
+      tripMsgTimer+=dt;
+      if(tripMsgTimer>2.2){ tripMsgTimer=0; tripMsgVisible=true; tripMsgIdx=Math.floor(Math.random()*TRIP_MESSAGES.length); }
+      if(tripTimer>=TRIP_DURATION){ tripActive=false; tripTimer=0; tripMsgVisible=false; }
+    }
     sDrawWorld(); sDrawUI();
+    if(tripActive) drawTripEffect();
     requestAnimationFrame(sGameLoop);
   }
 
@@ -310,6 +485,7 @@
              ||(px2>=obj.tx&&px2<obj.tx+obj.w&&py2>=obj.ty&&py2<obj.ty+obj.h);
       if(!hit) continue;
       if(obj.isCoin){ sShowDialog(obj,obj.lines); sCoinPending=true; return; }
+      if(obj.isNpc){ sShowDialog(obj,obj.lines); shopPending=true; return; }
       sShowDialog(obj,obj.lines); return;
     }
     // Door check
@@ -323,10 +499,43 @@
   }
   function sAdvanceDialog(){
     const wasCoin=sCoinPending;
+    const wasShop=shopPending;
+    const wasConfirm=shopConfirmPending;
     sdialogIdx++;
     if(sdialogIdx<sdialogQueue.length) return;
     sGameState='playing'; sdialogObj=null;
-    if(wasCoin){ sCoinPending=false; collectStreetCoin(); }
+    if(wasCoin){ sCoinPending=false; collectStreetCoin(); return; }
+    if(wasShop){
+      shopPending=false;
+      if(!npcSold){
+        // Offer to buy
+        shopConfirmPending=true;
+        sShowDialog(null,[
+          `"€3 for Strange Water. Your balance: €${sp.money}."`,
+          sp.money>=3
+            ? '"Hand it over and find out what Tuesday really looks like. (E to confirm)"'
+            : '"...You re broke. Come back when you have €3."',
+        ]);
+      }
+      return;
+    }
+    if(wasConfirm){
+      shopConfirmPending=false;
+      if(sp.money>=3){
+        sp.money-=3;
+        sp.inventory=[...sp.inventory,{id:'strange_water',name:'Strange Water',desc:'See Things. Briefly.',consumable:true}];
+        npcSold=true;
+        saveStreetState({money:sp.money,inventory:sp.inventory,weapon:sp.weapon,strangeWaterBought:true});
+        sShowDialog(null,[
+          '"Pleasure doing business."',
+          '"Drink it somewhere safe. Or don t. I m not your mum."',
+          '★ Strange Water added to inventory. [ Q to open inventory ]',
+        ]);
+      } else {
+        sShowDialog(null,['"No money, no water. That s capitalism."','"Come back when you re less broke."']);
+      }
+      return;
+    }
   }
   function collectStreetCoin(){
     streetCoin.visible=false; sp.money+=5; saveStreetState({ money: sp.money, streetCoinCollected: true, inventory: sp.inventory, weapon: sp.weapon });
@@ -520,6 +729,7 @@
     suiCtx.clearRect(0,0,suiCanvas.width,suiCanvas.height);
     sDrawStreetHUD();
     if(sGameState==='dialog') sDrawStreetDialog();
+    if(sGameState==='inventory') sDrawInventory();
     if(sGameState==='paused') sDrawStreetPause();
   }
 
@@ -531,7 +741,13 @@
     suiCtx.fillText(`💰 €${sp.money}`,pad,25);
     suiCtx.fillText('📍 OUTSIDE',pad+150,25);
     suiCtx.textAlign='right'; suiCtx.fillStyle='rgba(255,255,255,0.3)'; suiCtx.font='10px "IBM Plex Mono",monospace';
-    suiCtx.fillText('[E] Interact  [ESC] Pause',W-pad,25);
+    if(tripActive){
+      const trem=Math.ceil(TRIP_DURATION-tripTimer);
+      suiCtx.fillStyle=`hsl(${Date.now()/20%360},80%,65%)`;
+      suiCtx.fillText(`👁 SEEING THINGS (${trem}s)`,pad+300,25);
+    }
+    suiCtx.fillStyle='rgba(255,255,255,0.3)';
+    suiCtx.fillText('[E] Interact  [Q] Inventory  [ESC] Pause',W-pad,25);
   }
 
   function sDrawStreetDialog(){
@@ -557,6 +773,128 @@
     suiCtx.fillText('PAUSED',W/2,H/2-24);
     suiCtx.fillStyle='rgba(255,255,255,0.4)'; suiCtx.font='15px "IBM Plex Mono",monospace';
     suiCtx.fillText('( ESC to resume )',W/2,H/2+20); suiCtx.restore();
+  }
+
+  /* ══════ TRIP EFFECT ══════ */
+  function drawTripEffect(){
+    const t=Date.now()/1000;
+    const prog=tripTimer/TRIP_DURATION;
+    const intensity=prog<0.15?(prog/0.15):(prog>0.8?((1-prog)/0.2):1);
+    const c=sCtx;
+    const W=sCanvas.width, H=sCanvas.height;
+
+    c.save();
+
+    // 1. Chromatic aberration — draw canvas snapshot offset in R/G/B
+    const offX=Math.sin(t*2.1)*SCALE*4*intensity;
+    const offY=Math.cos(t*1.7)*SCALE*2*intensity;
+    c.globalCompositeOperation='screen';
+    c.globalAlpha=0.18*intensity;
+    c.fillStyle='#ff0040'; c.fillRect(offX, offY, W, H);
+    c.fillStyle='#0040ff'; c.fillRect(-offX, -offY, W, H);
+    c.globalCompositeOperation='source-over';
+    c.globalAlpha=1;
+
+    // 2. Wave distortion overlay (fake — colour bands)
+    for(let y=0;y<H;y+=SCALE*4){
+      const shift=Math.sin(t*3+y*0.04)*SCALE*3*intensity;
+      c.globalAlpha=0.04*intensity;
+      c.fillStyle=`hsl(${(y*2+t*60)%360},80%,60%)`;
+      c.fillRect(shift,y,W,SCALE*2);
+    }
+    c.globalAlpha=1;
+
+    // 3. Ghost Kevins — translucent rat silhouettes drifting around
+    const numGhosts=Math.floor(3*intensity)+1;
+    for(let g=0;g<numGhosts;g++){
+      const gx=(Math.sin(t*0.7+g*2.4)*0.35+0.5)*W;
+      const gy=(Math.cos(t*0.5+g*1.9)*0.3+0.5)*H;
+      const gs=SCALE*(2+Math.sin(t*0.9+g)*1);
+      c.save(); c.translate(gx,gy); c.scale(gs,gs);
+      c.globalAlpha=0.18*intensity;
+      // rat silhouette
+      c.fillStyle='#80ff80';
+      c.fillRect(-5,-8,10,9);   // body
+      c.fillRect(-8,-12,4,5);   // head
+      c.fillRect(-9,-14,2,4); c.fillRect(-6,-14,2,4); // ears
+      c.fillRect(-8,-11,2,2); // eye
+      c.restore();
+    }
+    c.globalAlpha=1;
+
+    // 4. Vignette pulse
+    const vig=c.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.85);
+    const vigAlpha=(0.4+0.3*Math.sin(t*1.5))*intensity;
+    vig.addColorStop(0,'rgba(0,80,0,0)');
+    vig.addColorStop(1,`rgba(0,40,20,${vigAlpha})`);
+    c.fillStyle=vig; c.fillRect(0,0,W,H);
+
+    // 5. Floating creepy message
+    if(tripMsgVisible){
+      const msgAlpha=Math.min(1,(1-Math.abs(tripMsgTimer-1.1)/1.1))*intensity;
+      c.globalAlpha=msgAlpha;
+      c.font=`bold ${SCALE*5}px "Permanent Marker",cursive`;
+      c.textAlign='center'; c.textBaseline='middle';
+      c.fillStyle='rgba(0,255,80,0.9)';
+      c.fillText(TRIP_MESSAGES[tripMsgIdx],W/2,H/2+Math.sin(t*2)*SCALE*8);
+      c.globalAlpha=1;
+    }
+
+    // 6. Timer bar at top (shows how long left)
+    const barW=(1-prog)*W;
+    c.fillStyle='rgba(0,255,80,0.35)';
+    c.fillRect(0,48,barW,4);
+
+    c.restore();
+
+    // Also overlay on UI canvas
+    const u=suiCtx;
+    const UW=suiCanvas.width, UH=suiCanvas.height;
+    u.save();
+    u.globalAlpha=0.06*intensity;
+    u.fillStyle=`hsl(${(t*40)%360},60%,40%)`;
+    u.fillRect(0,0,UW,UH);
+    u.globalAlpha=1;
+    u.restore();
+  }
+
+  /* ══════ STREET INVENTORY ══════ */
+  function sDrawInventory(){
+    const W=suiCanvas.width,H=suiCanvas.height,bw=Math.min(500,W-40),bh=360,bx=(W-bw)/2,by=(H-bh)/2;
+    suiCtx.save();
+    suiCtx.fillStyle='rgba(0,0,0,0.78)'; suiCtx.fillRect(0,0,W,H);
+    suiCtx.fillStyle='rgba(0,0,0,0.5)'; suiCtx.beginPath(); suiCtx.roundRect(bx+5,by+5,bw,bh,10); suiCtx.fill();
+    suiCtx.fillStyle='#0e0800'; suiCtx.strokeStyle='#ffe600'; suiCtx.lineWidth=3;
+    suiCtx.beginPath(); suiCtx.roundRect(bx,by,bw,bh,10); suiCtx.fill(); suiCtx.stroke();
+    suiCtx.fillStyle='#ffe600'; suiCtx.fillRect(bx+3,by+3,bw-6,3);
+    suiCtx.font='bold 18px "Permanent Marker",cursive'; suiCtx.textAlign='center'; suiCtx.textBaseline='top';
+    suiCtx.fillText('📦 POCKETS',W/2,by+16);
+    suiCtx.strokeStyle='rgba(255,230,0,0.2)'; suiCtx.lineWidth=1;
+    suiCtx.beginPath(); suiCtx.moveTo(bx+20,by+52); suiCtx.lineTo(bx+bw-20,by+52); suiCtx.stroke();
+    if(sp.inventory.length===0){
+      suiCtx.fillStyle='rgba(255,255,255,0.3)'; suiCtx.font='14px "IBM Plex Mono",monospace';
+      suiCtx.textAlign='center'; suiCtx.textBaseline='middle';
+      suiCtx.fillText('Nothing. Truly nothing.',W/2,by+bh/2);
+    } else {
+      sp.inventory.forEach((item,i)=>{
+        const iy=by+64+i*80;
+        suiCtx.fillStyle='rgba(255,230,0,0.07)'; suiCtx.strokeStyle='rgba(255,230,0,0.22)'; suiCtx.lineWidth=1;
+        suiCtx.beginPath(); suiCtx.roundRect(bx+20,iy,bw-40,72,6); suiCtx.fill(); suiCtx.stroke();
+        suiCtx.fillStyle='#ffe600'; suiCtx.font='bold 14px "Permanent Marker",cursive';
+        suiCtx.textAlign='left'; suiCtx.textBaseline='top';
+        suiCtx.fillText(item.name,bx+36,iy+12);
+        suiCtx.fillStyle='#c8b090'; suiCtx.font='11px "IBM Plex Mono",monospace';
+        suiCtx.fillText(item.desc,bx+36,iy+36);
+        if(item.consumable){
+          suiCtx.fillStyle='#40cc60'; suiCtx.font='bold 10px monospace';
+          suiCtx.fillText('[ F ] to consume',bx+36,iy+54);
+        }
+      });
+    }
+    suiCtx.fillStyle='rgba(255,230,0,0.4)'; suiCtx.font='11px "IBM Plex Mono",monospace';
+    suiCtx.textAlign='right'; suiCtx.textBaseline='bottom';
+    suiCtx.fillText('[Q] or [E] Close',bx+bw-16,by+bh-12);
+    suiCtx.restore();
   }
 
   function swrapText(ctx,text,x,y,maxW,lineH){
