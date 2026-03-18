@@ -7,6 +7,8 @@ NATHANLUCAGAMERPG-1/
 └── src/
     ├── app/
     │   └── Index.html
+    │   └── Street.html
+    │   └── Game.html
     ├── scripts/
     │   ├── Cinematic.js
     │   ├── Main.js
