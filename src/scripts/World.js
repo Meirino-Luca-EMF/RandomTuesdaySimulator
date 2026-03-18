@@ -8,7 +8,7 @@
 const TILE  = 16;
 const SCALE = 3;
 const S     = TILE * SCALE;
-const COLS  = 24;
+const COLS  = 22;
 const ROWS  = 18;
 
 /* ── MONEY ── */
@@ -79,29 +79,29 @@ const C = {
    N=north-wall  S=south-wall  W=west-wall  E=east-wall
    NW/NE/SW/SE=corners  D=door
 */
-const _=0,CK=2,RG=3,VD=4,HR=5;
+const _=0,CK=2,RG=3;
 const N=10,Sv=11,Wl=12,Er=13,NW=20,NE=21,SW=22,SE=23,DR=30;
 
 const MAP = [
-//  0    1    2    3    4    5    6    7    8    9   10   11   12   13   14   15   16   17   18   19   20   21   22   23
-  [NW,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,  NE],// 0
-  [Wl,  RG,  RG,  RG,  RG,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 1
-  [Wl,  RG,  RG,  RG,  RG,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 2
-  [Wl,  RG,  RG,  RG,  RG,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 3
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 4
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 5
-  [Wl,   _,   _,   CK,  _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 6
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 7
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 8
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   CK,  _,   _,   _,   _,   _,  Er],// 9
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],//10
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],//11
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   HR,  VD,  HR,  _,   _,   _,   _,  Er],//12  HOLE (bottom-right, away from table)
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],//13
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],//14
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   CK,  _,   _,   _,   _,   _,   _,   _,   _,  Er],//15
-  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],//16
-  [SW,   Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  DR,  DR,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv, SE],//17
+//  0    1    2    3    4    5    6    7    8    9   10   11   12   13   14   15   16   17   18   19   20   21
+  [NW,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,   N,  NE],// 0
+  [Wl,  RG,  RG,  RG,  RG,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 1
+  [Wl,  RG,  RG,  RG,  RG,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 2
+  [Wl,  RG,  RG,  RG,  RG,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 3
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 4
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 5
+  [Wl,   _,   _,   CK,  _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 6
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 7
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],// 8
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   CK,  _,   _,   _,  Er],// 9
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],//10
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],//11
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],//12
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],//13
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],//14
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   CK,  _,   _,   _,   _,   _,   _,  Er],//15
+  [Wl,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,  Er],//16
+  [SW,   Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  DR,  DR,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv,  Sv, SE],//17
 ];
 
 const SOLID_T = new Set([N,Sv,Wl,Er,NW,NE,SW,SE]);
@@ -693,8 +693,9 @@ OBJECTS.push({
   }
 });
 
-/* ══════ KEVIN — MOB (open floor, easy to reach) ══════ */
+/* ══════ KEVIN — MOB ══════ */
 let kevinAlive=true, kevinHitTimer=0, kevinDeathTimer=-1;
+/* Kevin at tx:11,ty:11 — coin drops at tx:12,ty:11 (adjacent, never overlaps) */
 OBJECTS.push({
   tx:11,ty:11,w:1,h:1,
   isMob:true,mobId:'kevin',
@@ -712,35 +713,50 @@ OBJECTS.push({
   ],
   draw(ctx){
     if(!kevinAlive){
-      ctx.globalAlpha=Math.max(0,1-(kevinDeathTimer-20)/50);
-      ctx.fillStyle=C.ratDd; ctx.fillRect(SCALE*2,SCALE*5,S-SCALE*4,S-SCALE*6); ctx.fillRect(SCALE*3,SCALE*3,S-SCALE*6,S-SCALE*4);
-      ctx.fillStyle='#2a1808'; ctx.fillRect(SCALE*2,0,SCALE*2,SCALE*4); ctx.fillRect(S-SCALE*4,0,SCALE*2,SCALE*4);
+      // Fade out dead Kevin
+      const alpha=Math.max(0,1-(kevinDeathTimer-20)/50);
+      if(alpha<=0) return;
+      ctx.globalAlpha=alpha;
+      ctx.fillStyle=C.ratDd;
+      ctx.fillRect(SCALE*2,SCALE*5,S-SCALE*4,S-SCALE*6);
+      ctx.fillRect(SCALE*3,SCALE*3,S-SCALE*6,S-SCALE*4);
+      ctx.fillStyle='#2a1808';
+      ctx.fillRect(SCALE*2,0,SCALE*2,SCALE*4);
+      ctx.fillRect(S-SCALE*4,0,SCALE*2,SCALE*4);
       ctx.strokeStyle='#ff4040'; ctx.lineWidth=SCALE;
       [[SCALE*3,SCALE*3],[S-SCALE*6,SCALE*3]].forEach(([ex,ey])=>{
         ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex+SCALE*2,ey+SCALE*2); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(ex+SCALE*2,ey); ctx.lineTo(ex,ey+SCALE*2); ctx.stroke();
       });
-      ctx.fillStyle='#ffe600'; ctx.font=`${SCALE*3}px serif`; ctx.textBaseline='top'; ctx.textAlign='center'; ctx.fillText('★',S/2,-SCALE*5);
+      ctx.fillStyle='#ffe600';
+      ctx.font=`${SCALE*3}px serif`; ctx.textBaseline='top'; ctx.textAlign='center';
+      ctx.fillText('★',S/2,-SCALE*5);
       ctx.globalAlpha=1; return;
     }
-    if(kevinHitTimer>0){ ctx.globalAlpha=0.45; ctx.fillStyle=C.hit; ctx.fillRect(-SCALE,-SCALE,S+SCALE*2,S+SCALE*2); ctx.globalAlpha=1; }
+    if(kevinHitTimer>0){
+      ctx.globalAlpha=0.45; ctx.fillStyle=C.hit;
+      ctx.fillRect(-SCALE,-SCALE,S+SCALE*2,S+SCALE*2); ctx.globalAlpha=1;
+    }
     const wb=Math.sin(Date.now()/400)*SCALE*0.6;
     ctx.save(); ctx.translate(0,wb);
-    // Shadow
-    ctx.globalAlpha=0.15; ctx.fillStyle='#000'; ctx.beginPath(); ctx.ellipse(S/2,S*0.9,S*0.28,S*0.06,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
-    // Body
-    ctx.fillStyle=C.ratBd; ctx.fillRect(SCALE*4,SCALE*5,S-SCALE*8,S-SCALE*7); ctx.fillRect(SCALE,SCALE*3,S-SCALE*8,S-SCALE*9);
-    // Ears
-    ctx.fillStyle=C.ratEr; ctx.fillRect(SCALE,0,SCALE*4,SCALE*4); ctx.fillRect(SCALE*6,0,SCALE*3,SCALE*4);
-    ctx.fillStyle='#c08080'; ctx.fillRect(SCALE*2,SCALE,SCALE*2,SCALE*2); ctx.fillRect(SCALE*6,SCALE,SCALE,SCALE*2);
-    // Eye
-    ctx.fillStyle=C.ratEy; ctx.fillRect(SCALE*3,SCALE*4,SCALE*2,SCALE*2); ctx.fillStyle='#ff8080'; ctx.fillRect(SCALE*4,SCALE*4,SCALE,SCALE);
-    // Nose
+    ctx.globalAlpha=0.15; ctx.fillStyle='#000';
+    ctx.beginPath(); ctx.ellipse(S/2,S*0.9,S*0.28,S*0.06,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.fillStyle=C.ratBd;
+    ctx.fillRect(SCALE*4,SCALE*5,S-SCALE*8,S-SCALE*7);
+    ctx.fillRect(SCALE,SCALE*3,S-SCALE*8,S-SCALE*9);
+    ctx.fillStyle=C.ratEr;
+    ctx.fillRect(SCALE,0,SCALE*4,SCALE*4); ctx.fillRect(SCALE*6,0,SCALE*3,SCALE*4);
+    ctx.fillStyle='#c08080';
+    ctx.fillRect(SCALE*2,SCALE,SCALE*2,SCALE*2); ctx.fillRect(SCALE*6,SCALE,SCALE,SCALE*2);
+    ctx.fillStyle=C.ratEy; ctx.fillRect(SCALE*3,SCALE*4,SCALE*2,SCALE*2);
+    ctx.fillStyle='#ff8080'; ctx.fillRect(SCALE*4,SCALE*4,SCALE,SCALE);
     ctx.fillStyle='#ff8080'; ctx.fillRect(SCALE,SCALE*6,SCALE*2,SCALE);
-    // Tail
     ctx.strokeStyle='#2a1a10'; ctx.lineWidth=SCALE*0.8;
-    ctx.beginPath(); ctx.moveTo((S-SCALE*2)*1,SCALE*10*1); ctx.quadraticCurveTo(S*1.2,SCALE*15*1,(S+SCALE*5)*1,SCALE*12*1); ctx.stroke();
-    // Whiskers
+    ctx.beginPath();
+    ctx.moveTo((S-SCALE*2)*1,SCALE*10*1);
+    ctx.quadraticCurveTo(S*1.2,SCALE*15*1,(S+SCALE*5)*1,SCALE*12*1);
+    ctx.stroke();
     ctx.strokeStyle='#c8b090'; ctx.lineWidth=0.5;
     ctx.beginPath(); ctx.moveTo(SCALE,SCALE*6); ctx.lineTo(-SCALE*4,SCALE*5); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(SCALE,SCALE*7); ctx.lineTo(-SCALE*4,SCALE*8); ctx.stroke();
@@ -749,11 +765,12 @@ OBJECTS.push({
   }
 });
 
-/* COIN reward */
+/* COIN reward — on a DIFFERENT tile than Kevin (tx:12,ty:11) */
 let coinVisible=false;
 OBJECTS.push({
-  tx:11,ty:11,w:1,h:1,
-  isCoin:true,hx:0,hy:0,hw:0,hh:0,
+  tx:12,ty:11,w:1,h:1,
+  isCoin:true,
+  hx:0,hy:0,hw:0,hh:0,       // no collision
   get _skip(){ return !coinVisible; },
   label:'1€',
   lines:['★ +1€ ramassé ! Kevin n\'aurait pas dû.'],
@@ -764,7 +781,9 @@ OBJECTS.push({
     ctx.fillStyle=C.coinG; ctx.beginPath(); ctx.arc(S/2,S/2,SCALE*5.5,0,Math.PI*2); ctx.fill();
     ctx.fillStyle=C.coinD; ctx.beginPath(); ctx.arc(S/2,S/2,SCALE*4.5,0,Math.PI*2); ctx.fill();
     ctx.fillStyle=C.coinG; ctx.beginPath(); ctx.arc(S/2,S/2,SCALE*3.5,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#ffffa0'; ctx.font=`bold ${SCALE*5}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('€',S/2,S/2);
+    ctx.fillStyle='#ffffa0';
+    ctx.font=`bold ${SCALE*5}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('€',S/2,S/2);
     ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillRect(S/2-SCALE*4,S/2-SCALE,SCALE,SCALE);
     ctx.restore();
   }
@@ -824,7 +843,6 @@ document.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
 
 let gameState='playing';
 let dialogQueue=[],dialogIdx=0,dialogObj=null;
-let isDead=false,deathTimer=0;
 
 /* ══════════════════════════════════════════════════
    CANVAS
@@ -867,7 +885,6 @@ function resizeGame(){
 let lastTime=0;
 function gameLoop(ts){
   const dt=Math.min((ts-lastTime)/1000,0.05); lastTime=ts;
-  if(isDead){ deathTimer+=dt; drawWorld(); drawDeathScreen(); requestAnimationFrame(gameLoop); return; }
   if(gameState==='playing') updatePlayer(dt);
   if(kevinHitTimer>0) kevinHitTimer=Math.max(0,kevinHitTimer-dt*8);
   if(kevinDeathTimer>=0) kevinDeathTimer+=dt*60;
@@ -893,9 +910,6 @@ function updatePlayer(dt){
     player.frameTimer+=dt;
     if(player.frameTimer>0.12){player.frameTimer=0;player.frame=(player.frame+1)%4;}
   } else player.frame=0;
-  // Void check
-  const tc=Math.floor(player.tx),tr=Math.floor(player.ty);
-  if(MAP[tr]?.[tc]===VD) triggerDeath();
 }
 
 function isSolid(tx,ty){
@@ -918,10 +932,7 @@ function isSolid(tx,ty){
   return false;
 }
 
-function triggerDeath(){
-  if(isDead) return;
-  isDead=true; deathTimer=0; saveMoney(player.money);
-}
+function triggerDeath(){ /* removed — no more holes */ }
 
 /* ══════ INTERACT ══════ */
 function tryInteract(){
@@ -939,9 +950,9 @@ function tryInteract(){
     if(!hit) continue;
     if(obj.isCoin){ showDialog(obj,obj.lines); pendingCoin=true; return; }
     if(obj.isMob&&obj.mobId==='kevin'){
-      if(!obj.alive) return;
+      if(!obj.alive) continue;   // Kevin mort = on continue, la pièce peut être trouvée
       if(!player.weapon) showDialog(obj,obj.lines);
-      else showDialog(obj,obj.linesArmed); // advanceDialog will call attackKevin when done
+      else showDialog(obj,obj.linesArmed);
       return;
     }
     if(obj.pickable){
@@ -1011,7 +1022,7 @@ function drawWorld(){
     ctx.save(); ctx.translate(obj.tx*S,obj.ty*S); obj.draw(ctx); ctx.restore();
   });
   drawPlayer();
-  if(!isDead) drawHint();
+  drawHint();
   if(player.attackTimer>0.3) drawSlash();
 }
 
@@ -1025,8 +1036,6 @@ function drawTile(col,row){
     case _:  drawFloor(col,row); break;
     case CK: drawFloor(col,row); drawCrack(); break;
     case RG: drawFloor(col,row); drawRug(); break;
-    case VD: drawVoid(); break;
-    case HR: drawFloor(col,row); drawHoleRim(); break;
     case N:  drawWallN(); break;
     case Sv: drawWallS(); break;
     case Wl: drawWallW(); break;
@@ -1120,7 +1129,6 @@ function drawDoor(){
 
 /* ══════ PLAYER ══════ */
 function drawPlayer(){
-  if(isDead) return;
   const x=player.tx*S+S/2,y=player.ty*S+S/2;
   const bob=(player.frame===1||player.frame===3)?-SCALE:0;
   const loff=player.frame===1?2:player.frame===3?-2:0;
