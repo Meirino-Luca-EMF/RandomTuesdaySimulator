@@ -386,3 +386,6 @@ body {
   -webkit-user-select: none;
 }
 @keyframes blink { 50% { opacity: 0; } }
+
+/* ---- GAME CANVAS CURSOR ---- */
+#game-wrapper { cursor: crosshair; }

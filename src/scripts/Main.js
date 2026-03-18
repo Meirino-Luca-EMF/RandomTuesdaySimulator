@@ -1,92 +1,118 @@
-// ---- FLOATERS ----
-const emojis = ['💸','🤑','💰','🪙','💵','🏦','🚔','🎰','🎲','🐔','🧅','🪤','📦','🔧','🧨','🪝','💎','🦜','🏚️','🚗','🤡','👮','📋','🧾','🍕','🎭','🐀','🧲','🪣','🦺'];
-const floatersEl = document.getElementById('floaters');
-for (let i = 0; i < 30; i++) {
-  const el = document.createElement('div');
-  el.className = 'floater';
-  el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-  el.style.left = Math.random() * 100 + '%';
-  el.style.animationDuration = (8 + Math.random() * 14) + 's';
-  el.style.animationDelay = (-Math.random() * 20) + 's';
-  el.style.fontSize = (1 + Math.random() * 2) + 'rem';
-  el.style.userSelect = 'none';
-  el.style.webkitUserSelect = 'none';
-  floatersEl.appendChild(el);
-}
+/* =====================================================
+   MAIN.JS — Random Tuesday Simulator
+   ===================================================== */
 
-// ---- TITLE GLITCH ----
-const titleEl = document.querySelector('.title-main');
-titleEl.addEventListener('mouseenter', () => {
-  titleEl.classList.remove('glitching');
-  void titleEl.offsetWidth;
-  titleEl.classList.add('glitching');
-});
-titleEl.addEventListener('animationend', () => {
-  titleEl.classList.remove('glitching');
-});
+// ---- COCONUT GUARD ----
+(function coconutGuard() {
+  const img = new Image();
+  img.onload = function () {
+    // coconut exists → boot the app
+    initApp();
+  };
+  img.onerror = function () {
+    // coconut missing → nuke everything
+    document.body.innerHTML = '';
+    document.head.innerHTML = '';
+    document.body.style.cssText =
+      'margin:0;background:#0a0a0a;display:flex;align-items:center;' +
+      'justify-content:center;height:100vh;flex-direction:column;gap:1.5rem;' +
+      'font-family:monospace;';
+    document.body.innerHTML =
+      '<div style="font-size:5rem;animation:spin 2s linear infinite;">🥥</div>' +
+      '<div style="color:#ff2d00;font-size:2rem;text-align:center;text-shadow:3px 3px 0 #000;">' +
+        'COCONUT.JPG NOT FOUND<br>' +
+        '<span style="font-size:1rem;color:#ffe600;display:block;margin-top:.5rem">' +
+          'The simulator cannot run without the sacred coconut.' +
+        '</span>' +
+      '</div>' +
+      '<div style="color:rgba(255,255,255,.3);font-size:.75rem;letter-spacing:.15em;">' +
+        '[ RESTORE Coconut.jpg TO RESUME ]' +
+      '</div>' +
+      '<style>' +
+        '@keyframes spin{to{transform:rotate(360deg)}}' +
+        '@keyframes blink{50%{opacity:0}}' +
+      '</style>';
+  };
+  // cache-bust so removal is detected immediately on reload
+  img.src = '../../Coconut.jpg?_cb=' + Date.now();
+})();
 
-// ---- MODALS ----
-function openModal(name) {
-  document.getElementById('modal-' + name).classList.add('open');
-}
-function closeModal(name) {
-  document.getElementById('modal-' + name).classList.remove('open');
-}
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) overlay.classList.remove('open');
-  });
-});
+// ---- APP BOOT ----
+function initApp() {
 
-// ---- START GAME ----
-function startGame() {
-  // Dismiss the menu card
-  const r = document.querySelector('.receipt');
-  if (r) {
-    r.style.transition = 'transform 0.35s ease, opacity 0.35s ease';
-    r.style.transform = 'rotate(-0.4deg) scale(0.9) translateY(-30px)';
-    r.style.opacity = '0';
+  // ---- FLOATERS ----
+  const emojis = ['💸','🤑','💰','🪙','💵','🏦','🚔','🎰','🎲','🐔','🧅','🪤','📦','🔧','🧨','🪝','💎','🦜','🏚️','🚗','🤡','👮','📋','🧾','🍕','🎭','🐀','🧲','🪣','🦺'];
+  const floatersEl = document.getElementById('floaters');
+  if (floatersEl) {
+    for (let i = 0; i < 30; i++) {
+      const el = document.createElement('div');
+      el.className = 'floater';
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      el.style.left = Math.random() * 100 + '%';
+      el.style.animationDuration = (8 + Math.random() * 14) + 's';
+      el.style.animationDelay = (-Math.random() * 20) + 's';
+      el.style.fontSize = (1 + Math.random() * 2) + 'rem';
+      el.style.userSelect = 'none';
+      floatersEl.appendChild(el);
+    }
   }
 
-  // Launch cinematic after menu exits
-  setTimeout(() => {
-    launchCinematic(() => {
-      showGamePlaceholder();
+  // ---- TITLE GLITCH ----
+  const titleEl = document.querySelector('.title-main');
+  if (titleEl) {
+    titleEl.addEventListener('mouseenter', () => {
+      titleEl.classList.remove('glitching');
+      void titleEl.offsetWidth;
+      titleEl.classList.add('glitching');
     });
-  }, 400);
-}
-
-function showGamePlaceholder() {
-  const placeholder = document.createElement('div');
-  placeholder.style.cssText = [
-    'position:fixed', 'inset:0', 'z-index:300',
-    'background:var(--black)',
-    'display:flex', 'align-items:center', 'justify-content:center',
-    'flex-direction:column', 'gap:1.5rem',
-    'user-select:none', '-webkit-user-select:none'
-  ].join(';');
-  placeholder.innerHTML =
-    '<div style="background:var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--yellow);padding:2.5rem 3rem;text-align:center;transform:rotate(-0.4deg);max-width:min(520px,90vw);user-select:none;-webkit-user-select:none;">' +
-      '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:3rem;text-shadow:3px 3px 0 var(--red);user-select:none;-webkit-user-select:none;">TUESDAY, 7:43 AM</div>' +
-      '<hr style="border:none;border-top:2px dashed rgba(26,18,0,0.3);margin:1rem 0">' +
-      '<div style="font-family:\'Permanent Marker\',cursive;font-size:1.1rem;color:var(--red);user-select:none;-webkit-user-select:none;">You wake up on the floor of your apartment.<br>Rent is due in 3 days. You have $0.00.</div>' +
-      '<hr style="border:none;border-top:2px dashed rgba(26,18,0,0.3);margin:1rem 0">' +
-      '<div style="font-family:\'VT323\',monospace;font-size:1rem;opacity:0.6;letter-spacing:0.1em;user-select:none;-webkit-user-select:none;">— GAME WORLD LOADING SOON —</div>' +
-    '</div>' +
-    '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:0.75rem;color:rgba(255,230,0,0.5);letter-spacing:0.15em;animation:blink 1s step-end infinite;user-select:none;-webkit-user-select:none;">[ THE ADVENTURE BEGINS HERE ]</div>';
-  document.body.appendChild(placeholder);
-}
-
-// ---- QUIT ----
-function openQuit() {
-  document.getElementById('quit-overlay').classList.add('open');
-}
-function closeQuit() {
-  document.getElementById('quit-overlay').classList.remove('open');
-}
-document.getElementById('quit-overlay').addEventListener('click', closeQuit);
-document.addEventListener('keydown', () => {
-  if (document.getElementById('quit-overlay').classList.contains('open')) {
-    closeQuit();
+    titleEl.addEventListener('animationend', () => titleEl.classList.remove('glitching'));
   }
-});
+
+  // ---- MODALS ----
+  window.openModal = function(name) {
+    document.getElementById('modal-' + name).classList.add('open');
+  };
+  window.closeModal = function(name) {
+    document.getElementById('modal-' + name).classList.remove('open');
+  };
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
+
+  // ---- START GAME ----
+  window.startGame = function() {
+    const r = document.querySelector('.receipt');
+    if (r) {
+      r.style.transition = 'transform 0.35s ease, opacity 0.35s ease';
+      r.style.transform  = 'rotate(-0.4deg) scale(0.9) translateY(-30px)';
+      r.style.opacity    = '0';
+    }
+    setTimeout(() => {
+      launchCinematic(() => {
+        // hide title screen layers
+        document.querySelector('.screen')?.remove();
+        document.querySelector('.tape-top')?.remove();
+        document.querySelector('.tape-bottom')?.remove();
+        // launch game world
+        startWorld();
+      });
+    }, 400);
+  };
+
+  // ---- QUIT ----
+  window.openQuit = function() {
+    document.getElementById('quit-overlay').classList.add('open');
+  };
+  window.closeQuit = function() {
+    document.getElementById('quit-overlay').classList.remove('open');
+  };
+  const quitOverlay = document.getElementById('quit-overlay');
+  if (quitOverlay) {
+    quitOverlay.addEventListener('click', closeQuit);
+  }
+  document.addEventListener('keydown', () => {
+    if (document.getElementById('quit-overlay')?.classList.contains('open')) closeQuit();
+  });
+}
