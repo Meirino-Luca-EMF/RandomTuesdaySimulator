@@ -1196,7 +1196,7 @@ function triggerExit(){
   });
   setTimeout(()=>{
     // Navigate to street page — adjust path as needed
-    window.location.href='Street.html';
+    window.location.href='Street2.html';
   },900);
 }
 

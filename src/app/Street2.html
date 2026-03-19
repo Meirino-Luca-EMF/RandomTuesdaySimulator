@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Random Tuesday Simulator — The Street</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=VT323&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../styles/Style.css"/>
+  <link rel="stylesheet" href="../styles/DialogSystem.css"/>
+  <style>
+    body { overflow: hidden; background: #0a0a0a; }
+    #fade-in { position:fixed;inset:0;background:#0a0a0a;z-index:9999;pointer-events:none;transition:opacity 1s ease; }
+    #street-wrapper { position:fixed;inset:0;z-index:300;background:#0e1a0a;overflow:hidden; }
+    canvas { image-rendering:pixelated; image-rendering:crisp-edges; }
+    #street-canvas { position:absolute; }
+    #ui-canvas { position:absolute;top:0;left:0;pointer-events:none; }
+  </style>
+</head>
+<body>
+<div id="fade-in"></div>
+<div class="bg-layer bg-grid"></div>
+<div class="bg-noise"></div>
+<div class="scanlines"></div>
+<div id="street-wrapper">
+  <canvas id="street-canvas"></canvas>
+  <canvas id="ui-canvas"></canvas>
+</div>
+
+<script src="../scripts/DialogSystem.js"></script>
+<script>
+'use strict';
+
+/* ══════════════════════════════════════════════════════════
+   STREET2.JS — Long scrollable street, Undertale dialog
+   Map: 80 cols × 18 rows  (scale 3 × 16px tiles = 48px/tile)
+   Camera follows player horizontally.
+   ══════════════════════════════════════════════════════════ */
+
+const TILE=16, SCALE=3, S=TILE*SCALE;
+const COLS=80, ROWS=18;
+
+/* ── State persistence ── */
+function loadState(){ try{ return JSON.parse(localStorage.getItem('rts_state')||'{}'); }catch(e){return{};} }
+function saveState(patch){ try{ const s=loadState(); Object.assign(s,patch); localStorage.setItem('rts_state',JSON.stringify(s)); if(s.money!==undefined) localStorage.setItem('rts_money',String(s.money)); }catch(e){} }
+
+const _initState = loadState();
+
+/* ── Colour palette ── */
+const C = {
+  skyTop:'#0d1520', skyMid:'#1a2a3a', skyBot:'#253545',
+  star:'rgba(255,255,220,0.7)',
+  moonA:'#e0d8c0', moonB:'#c0b8a0',
+  pavA:'#484840', pavB:'#404038', pavC:'#505048', pavLine:'rgba(255,255,255,0.05)',
+  rdA:'#2a2a28', rdB:'#252523', rdMark:'#c8b820',
+  bldA:'#4a3828', bldB:'#382828', bldC:'#383848', bldD:'#2a3828',
+  winOff:'#1a1a14', winOn:'#c8a840', winOnD:'#a87820', winBl:'#2a3040',
+  bldDoor:'#2a1808', bldDoorFr:'#3a2810',
+  lampPost:'#484840', lampLit:'rgba(255,220,100,0.55)',
+  binGr:'#2a3a28', binLid:'#384830',
+  sigBg:'#c03020', sigTx:'#f0e8c0',
+  treeTk:'#3a2a18', treeLvA:'#1e3a10', treeLvB:'#2a4a16', treeLvC:'#3a5820',
+  carA:'#c03020', carB:'#284880', carC:'#2a4028', carD:'#8a2090',
+  coinG:'#f0c020', coinGLit:'#ffd840',
+  hintBg:'#ffe600', hintTx:'#1a1200',
+  hit:'rgba(255,60,60,0.55)',
+  graffA:'#8020c0', graffB:'#c04020',
+};
+
+/* ══ MAP ══
+   0=pavement  1=road  2=road-mark  3=building  4=door  5=tree  6=lamp  7=alley
+*/
+const _P=0,_R=1,_M=2,_B=3,_D=4,_T=5,_L=6,_A=7;
+
+/* Build the 80-wide map procedurally to keep file size sane */
+function buildMap(){
+  const rows=[];
+  for(let r=0;r<ROWS;r++){
+    const row=[];
+    for(let c=0;c<COLS;c++){
+      row.push(getTile(c,r));
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+function getTile(c,r){
+  /* ── Row layout (same as original, but 80 cols) ──
+     0-3  : buildings (north side)
+     3    : building with doors
+     4-5  : north pavement
+     6-10 : road (row 8 = centre marks)
+     11-12: south pavement
+     13-17: buildings (south side)
+     16   : building with doors (south)
+  */
+  if(r===6||r===7||r===9||r===10) return _R;
+  if(r===8){
+    // Dashed centre line every 4 cols
+    return (c%4<2)?_M:_R;
+  }
+  if(r===4||r===5||r===11||r===12){
+    // Pavement — sprinkle lamps and trees
+    if(r===4){
+      if(c===5||c===19||c===33||c===47||c===61||c===74) return _L;
+      if(c===10||c===24||c===38||c===52||c===66) return _T;
+    }
+    if(r===12){
+      if(c===3||c===17||c===31||c===45||c===59||c===72) return _L;
+      if(c===8||c===22||c===36||c===50||c===64||c===78) return _T;
+    }
+    return _P;
+  }
+  // Buildings — rows 0-3 (north) and 13-17 (south)
+  if(r>=0&&r<=3){
+    // Doors on row 3
+    if(r===3){
+      // player's building door
+      if(c===3) return _D;
+      // other doors scattered
+      const doors=[12,13,25,26,40,41,55,56,68,69];
+      if(doors.includes(c)) return _D;
+    }
+    return _B;
+  }
+  if(r>=13&&r<=17){
+    if(r===16){
+      const doors=[1,9,10,20,21,35,36,50,51,65,66,75];
+      if(doors.includes(c)) return _D;
+    }
+    return _B;
+  }
+  return _P;
+}
+
+const SMAP = buildMap();
+const SOLID_STREET = new Set([_B, _T]);
+
+/* ── Stars (static seed) ── */
+const STARS=[];
+for(let i=0;i<80;i++) STARS.push({ x:(Math.sin(i*997.3)*.5+.5)*COLS*S, y:(Math.cos(i*1337.7)*.5+.5)*3*S, r:Math.random()*1.5+0.5, twinkle:Math.random()*Math.PI*2 });
+
+/* ── Objects on street ── */
+const SOBJECTS=[];
+
+/* Shared state flags */
+let streetCoinCollected = _initState.streetCoinCollected===true;
+let dealerSold          = _initState.strangeWaterBought===true;
+let oldLadyTalked       = _initState.oldLadyTalked===true;
+let copWarned           = _initState.copWarned===true;
+let homelessHelped      = _initState.homelessHelped===true;
+
+/* ────────────────── COIN ────────────────── */
+if(!streetCoinCollected){
+  SOBJECTS.push({
+    id:'coin', tx:7,ty:4, w:1,h:1, hx:0,hy:0,hw:0,hh:0,
+    label:'Shiny thing',
+    get _skip(){ return streetCoinCollected; },
+    interact(){
+      DialogSystem.show({
+        speaker: 'NARRATOR',
+        speakerPortrait: 'unknown',
+        playerPortrait: 'normal',
+        lines:[
+          { text:'A coin. On the ground. Your day is looking up.', speaker:'right' },
+          { text:'"€5." You say it out loud. No one is impressed.', speaker:'right', expr:'normal' },
+        ],
+        onClose(){ collectCoin(); }
+      });
+    },
+    draw(ctx){
+      if(streetCoinCollected) return;
+      const b=Math.sin(Date.now()/280)*SCALE;
+      ctx.save(); ctx.translate(0,b);
+      ctx.globalAlpha=0.28+0.18*Math.sin(Date.now()/400);
+      ctx.fillStyle='#ffe600'; ctx.beginPath(); ctx.arc(S/2,S/2,SCALE*9,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+      ctx.fillStyle='#c09010'; ctx.beginPath(); ctx.arc(S/2+SCALE*.5,S/2+SCALE*.5,SCALE*6,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=C.coinG; ctx.beginPath(); ctx.arc(S/2,S/2,SCALE*6,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=C.coinGLit; ctx.beginPath(); ctx.arc(S/2,S/2,SCALE*4.5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#c09010'; ctx.font=`bold ${SCALE*5}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('5',S/2,S/2);
+      ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.fillRect(S/2-SCALE*4,S/2-SCALE*2,SCALE*1.5,SCALE*1.5);
+      ctx.restore();
+    }
+  });
+}
+
+/* ────────────────── DEALER ────────────────── */
+SOBJECTS.push({
+  id:'dealer', tx:16,ty:4, w:1,h:2, hx:16,hy:4,hw:1,hh:2,
+  label:'??? (stranger)',
+  interact(){
+    if(dealerSold){
+      DialogSystem.show({
+        speaker:'DEALER',
+        speakerPortrait:'dealer',
+        playerPortrait:'normal',
+        lines:[
+          { text:'"You again."', expr:'smirk' },
+          { text:'"No refunds. No returns. No regrets."', expr:'normal' },
+          { text:'"...Well. Maybe some regrets."', expr:'sneaky' },
+        ],
+      });
+      return;
+    }
+    DialogSystem.show({
+      speaker:'DEALER',
+      speakerPortrait:'dealer',
+      playerPortrait:'normal',
+      lines:[
+        { text:'"Psst. Hey. YOU."', expr:'sneaky' },
+        { text:'"I got something special. Very limited stock."', expr:'smirk' },
+        { text:'"Strange Water. €3. Makes you see... Things."', expr:'normal' },
+        { text:'"Interested?"', expr:'smirk' },
+      ],
+      choices:[
+        { label:`Buy Strange Water (€3) — Balance: €${sp.money}`, value:'buy' },
+        { label:'No thanks. I enjoy reality.', value:'decline' },
+      ],
+      onChoice(val){
+        if(val==='buy'){
+          if(sp.money>=3){
+            sp.money-=3;
+            sp.inventory.push({ id:'strange_water', name:'Strange Water', desc:'See Things. Briefly.', consumable:true });
+            dealerSold=true;
+            saveState({ money:sp.money, inventory:sp.inventory, strangeWaterBought:true });
+            setTimeout(()=>{
+              DialogSystem.show({
+                speaker:'DEALER',
+                speakerPortrait:'dealer',
+                playerPortrait:'happy',
+                lines:[
+                  { text:'"Pleasure doing business."', expr:'smirk' },
+                  { text:'"Drink it somewhere safe. Or don\'t. I\'m not your mum."', expr:'sneaky' },
+                  { text:'★ Strange Water added to your pockets. [Q] to open inventory.', speaker:'left', expr:'happy' },
+                ],
+              });
+            },80);
+          } else {
+            setTimeout(()=>{
+              DialogSystem.show({
+                speaker:'DEALER',
+                speakerPortrait:'dealer',
+                playerPortrait:'surprised',
+                lines:[
+                  { text:'"You\'re broke."', expr:'threatening' },
+                  { text:'"No money, no water. That\'s capitalism, baby."', expr:'smirk' },
+                  { text:'"Come back when you\'re less pathetic."', expr:'sneaky' },
+                ],
+              });
+            },80);
+          }
+        } else {
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'DEALER',
+              speakerPortrait:'dealer',
+              playerPortrait:'normal',
+              lines:[
+                { text:'"Reality." *laughs*', expr:'smirk' },
+                { text:'"Bold choice. Very bold."', expr:'sneaky' },
+              ],
+            });
+          },80);
+        }
+      }
+    });
+  },
+  draw(ctx){
+    const t=Date.now();
+    const bob=Math.sin(t/700)*SCALE*0.8;
+    ctx.save(); ctx.translate(S/2,S+bob);
+    const p=SCALE;
+    // Shadow
+    ctx.globalAlpha=0.18; ctx.fillStyle='#000';
+    ctx.beginPath(); ctx.ellipse(0,S*0.42,S*0.28,S*0.065,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    // Legs
+    ctx.fillStyle='#1a1428'; ctx.fillRect(-4*p,0,3*p,8*p); ctx.fillRect(p,0,3*p,8*p);
+    // Shoes
+    ctx.fillStyle='#0a0808'; ctx.fillRect(-6*p,8*p,5*p,3*p); ctx.fillRect(p,8*p,5*p,3*p);
+    // Coat
+    ctx.fillStyle='#1e0e2e'; ctx.fillRect(-7*p,-12*p,14*p,12*p);
+    ctx.fillStyle='#2a1240'; ctx.fillRect(-7*p,-12*p,4*p,8*p); ctx.fillRect(3*p,-12*p,4*p,8*p);
+    ctx.fillStyle='#140828'; ctx.fillRect(-6*p,-12*p,4*p,5*p); ctx.fillRect(2*p,-12*p,4*p,5*p);
+    // Arms
+    ctx.fillStyle='#1e0e2e'; ctx.fillRect(-11*p,-10*p,5*p,10*p); ctx.fillRect(6*p,-10*p,5*p,10*p);
+    ctx.fillStyle='#c0a878'; ctx.fillRect(-11*p,-p,5*p,3*p); ctx.fillRect(6*p,-p,5*p,3*p);
+    // Glowing bottle
+    ctx.save(); ctx.translate(-14*p,-3*p);
+    const glow=0.4+0.3*Math.sin(t/300);
+    ctx.globalAlpha=glow*0.5; ctx.fillStyle='#40ff80';
+    ctx.beginPath(); ctx.arc(0,0,p*4,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+    ctx.fillStyle='#1a6028'; ctx.fillRect(-p*2,-p*5,p*4,p*9);
+    ctx.fillStyle='#2a8838'; ctx.fillRect(-p*2,-p*5,p*2,p*9);
+    ctx.fillStyle='#40cc60'; ctx.fillRect(-p*2,-p*5,p*4,p*3);
+    ctx.fillStyle='rgba(100,255,120,0.6)'; ctx.fillRect(-p*2,-p*4,p*2,p*3);
+    ctx.fillStyle='#888'; ctx.fillRect(-p,-p*7,p*2,p*2);
+    ctx.restore();
+    // Neck
+    ctx.fillStyle='#c0a878'; ctx.fillRect(-2*p,-14*p,4*p,2*p);
+    // Head
+    ctx.fillStyle='#b89868'; ctx.fillRect(-5*p,-24*p,10*p,10*p);
+    // Hat
+    ctx.fillStyle='#0e0818'; ctx.fillRect(-8*p,-28*p,16*p,4*p); ctx.fillRect(-5*p,-36*p,10*p,9*p);
+    ctx.fillStyle='#2a1848'; ctx.fillRect(-5*p,-36*p,5*p,9*p);
+    ctx.fillStyle='rgba(255,200,80,0.22)'; ctx.fillRect(-5*p,-28*p,10*p,p);
+    // Shadow under hat
+    ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(-5*p,-26*p,10*p,4*p);
+    // Eyes
+    ctx.fillStyle='#1a0a20'; ctx.fillRect(-4*p,-21*p,3*p,3*p); ctx.fillRect(p,-21*p,3*p,3*p);
+    ctx.fillStyle='rgba(80,255,120,0.9)'; ctx.fillRect(-3*p,-20*p,2*p,2*p); ctx.fillRect(p,-20*p,2*p,2*p);
+    ctx.fillStyle='rgba(200,255,200,0.7)'; ctx.fillRect(-3*p,-20*p,p,p); ctx.fillRect(p,-20*p,p,p);
+    // Smirk
+    ctx.fillStyle='#6a4820'; ctx.fillRect(-3*p,-17*p,7*p,p); ctx.fillRect(2*p,-16*p,2*p,p);
+    // Floating ?
+    ctx.globalAlpha=0.55+0.45*Math.sin(t/450);
+    ctx.fillStyle='#ffe600'; ctx.font=`bold ${p*4}px monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText('?',0,-37*p);
+    ctx.globalAlpha=1;
+    ctx.restore();
+  }
+});
+
+/* ────────────────── TRASH BIN ────────────────── */
+SOBJECTS.push({
+  id:'bin', tx:11,ty:4, w:1,h:1, hx:11,hy:4,hw:1,hh:1,
+  label:'Trash Bin',
+  interact(){
+    DialogSystem.show({
+      speaker:'NARRATOR',
+      speakerPortrait:'unknown',
+      playerPortrait:'normal',
+      lines:[
+        { text:'"Smells like Tuesday."', speaker:'right' },
+        { text:'Something shifts inside. You hear a sound.', speaker:'right' },
+        { text:'"...Is that a rat? Or just the economy?"', speaker:'left', expr:'surprised' },
+      ],
+    });
+  },
+  draw(ctx){
+    ctx.fillStyle='#1a2818'; ctx.fillRect(SCALE,0,S-SCALE*2,S);
+    ctx.fillStyle=C.binGr; ctx.fillRect(SCALE*2,SCALE*2,S-SCALE*4,S-SCALE*4);
+    ctx.fillStyle=C.binLid; ctx.fillRect(0,0,S,SCALE*3);
+    ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fillRect(0,0,S,SCALE);
+    ctx.fillStyle='rgba(255,80,80,0.5)'; ctx.fillRect(SCALE*3,SCALE*5,S-SCALE*6,SCALE*3);
+    ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(0,S-SCALE*2,S,SCALE*2);
+  }
+});
+
+/* ────────────────── NOTICE BOARD ────────────────── */
+SOBJECTS.push({
+  id:'notice', tx:20,ty:4, w:2,h:1, hx:20,hy:4,hw:2,hh:1,
+  label:'Notice Board',
+  interact(){
+    DialogSystem.show({
+      speaker:'NOTICE BOARD',
+      speakerPortrait:'unknown',
+      playerPortrait:'normal',
+      lines:[
+        { text:'"WANTED: reliable tenant. €200/month. No pets."', speaker:'right' },
+        { text:'Someone crossed out "reliable" and wrote "any".', speaker:'right' },
+        { text:'Below that: "GONE IN 3 DAYS — Owner fled." Cool.', speaker:'left', expr:'surprised' },
+      ],
+    });
+  },
+  draw(ctx){
+    ctx.fillStyle='#484840'; ctx.fillRect(S-SCALE*2,0,SCALE*4,S); ctx.fillStyle='#606058'; ctx.fillRect(S-SCALE*2,0,SCALE*2,S);
+    ctx.fillStyle=C.sigBg; ctx.fillRect(0,SCALE*2,2*S,S-SCALE*2);
+    ctx.fillStyle='#e03018'; ctx.fillRect(0,SCALE*2,2*S,SCALE*3);
+    ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(0,SCALE*2,2*S,SCALE*2);
+    ctx.fillStyle=C.sigTx; ctx.font=`${SCALE*2}px monospace`; ctx.textBaseline='top'; ctx.textAlign='center';
+    ctx.fillText('WANTED:',S,SCALE*3);
+    ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font=`${SCALE*1.5}px monospace`;
+    ctx.fillText('TENANT',S,SCALE*6); ctx.fillText('€200/mo',S,SCALE*8);
+    ctx.strokeStyle='rgba(255,40,40,0.7)'; ctx.lineWidth=SCALE;
+    ctx.beginPath(); ctx.moveTo(SCALE*2,SCALE*6); ctx.lineTo(2*S-SCALE*2,SCALE*9); ctx.stroke();
+  }
+});
+
+/* ────────────────── OLD LADY NPC ────────────────── */
+SOBJECTS.push({
+  id:'old_lady', tx:30,ty:11, w:1,h:2, hx:30,hy:11,hw:1,hh:2,
+  label:'Old Lady',
+  interact(){
+    if(oldLadyTalked){
+      DialogSystem.show({
+        speaker:'MURIEL',
+        speakerPortrait:'old_lady',
+        playerPortrait:'normal',
+        lines:[
+          { text:'"You again. Still broke, dear?"', expr:'suspicious' },
+          { text:'"Go find yourself a job. Or a pigeon. Same thing, really."', expr:'angry' },
+        ],
+      });
+      return;
+    }
+    DialogSystem.show({
+      speaker:'MURIEL',
+      speakerPortrait:'old_lady',
+      playerPortrait:'normal',
+      lines:[
+        { text:'"Oh, hello dear. You look terrible."', expr:'normal' },
+        { text:'"In my day, we didn\'t just STAND on the street looking confused."', expr:'suspicious' },
+        { text:'"We had initiative. And hats. You young people never wear hats."', expr:'angry' },
+        { text:'"Are you even employed, dear?"', expr:'suspicious' },
+      ],
+      choices:[
+        { label:'Yes. Absolutely. Very employed.', value:'lie' },
+        { label:'Not... exactly.', value:'honest' },
+        { label:'What\'s a job?', value:'clueless' },
+      ],
+      onChoice(val){
+        oldLadyTalked=true;
+        saveState({ oldLadyTalked:true });
+        if(val==='lie'){
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'MURIEL',
+              speakerPortrait:'old_lady',
+              playerPortrait:'happy',
+              lines:[
+                { text:'"Oh wonderful! Which company?"', expr:'normal' },
+                { text:'"...You hesitated. That\'s not a company. That\'s a lie."', expr:'angry' },
+                { text:'"I was born at night, dear. Not last night."', expr:'suspicious' },
+              ],
+            });
+          },80);
+        } else if(val==='honest'){
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'MURIEL',
+              speakerPortrait:'old_lady',
+              playerPortrait:'sad',
+              lines:[
+                { text:'"Hmph. At least you\'re honest."', expr:'normal' },
+                { text:'"My Gerald was honest too. He died owing me €40."', expr:'suspicious' },
+                { text:'"Here\'s a tip: the pigeons by the fountain. Apparently they pay."', expr:'normal' },
+                { text:'★ Hint unlocked: something\'s going on near the fountain.', speaker:'left', expr:'surprised' },
+              ],
+              onClose(){ sp.money+=0; saveState({money:sp.money}); }
+            });
+          },80);
+        } else {
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'MURIEL',
+              speakerPortrait:'old_lady',
+              playerPortrait:'surprised',
+              lines:[
+                { text:'"..."', expr:'angry' },
+                { text:'"Lord have mercy."', expr:'angry' },
+                { text:'"It\'s a thing you do so people give you money, dear."', expr:'suspicious' },
+                { text:'"Though clearly that concept has eluded you."', expr:'angry' },
+              ],
+            });
+          },80);
+        }
+      }
+    });
+  },
+  draw(ctx){
+    const t=Date.now();
+    const bob=Math.sin(t/900)*SCALE*0.5;
+    ctx.save(); ctx.translate(S/2,S+bob);
+    const p=SCALE;
+    // Shadow
+    ctx.globalAlpha=0.15; ctx.fillStyle='#000';
+    ctx.beginPath(); ctx.ellipse(0,S*0.42,S*0.22,S*0.06,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+    // Body — floral cardigan
+    ctx.fillStyle='#7a4858'; ctx.fillRect(-7*p,-4*p,14*p,16*p);
+    ctx.fillStyle='#6a3848'; ctx.fillRect(-7*p,-4*p,4*p,10*p); ctx.fillRect(3*p,-4*p,4*p,10*p);
+    // Floral dots
+    for(const [dx,dy] of [[-3,-2],[2,-1],[-1,5],[4,7],[-5,9],[2,12]]){
+      ctx.fillStyle='#f08080'; ctx.fillRect(dx*p,dy*p,p*2,p*2);
+      ctx.fillStyle='#f0c0c0'; ctx.fillRect((dx+1)*p,dy*p,p,p);
+    }
+    // Handbag
+    ctx.fillStyle='#8a5030'; ctx.fillRect(7*p,2*p,5*p,7*p);
+    ctx.fillStyle='#6a3820'; ctx.fillRect(7*p,2*p,5*p,p);
+    ctx.fillStyle='#c07040'; ctx.fillRect(8*p,3*p,3*p,4*p);
+    ctx.fillStyle='#d0a860'; ctx.fillRect(9*p,3*p,p,3*p);
+    // Legs
+    ctx.fillStyle='#604850'; ctx.fillRect(-4*p,12*p,3*p,8*p); ctx.fillRect(p,12*p,3*p,8*p);
+    ctx.fillStyle='#8a6860'; ctx.fillRect(-4*p,20*p,4*p,3*p); ctx.fillRect(p,20*p,4*p,3*p);
+    // Neck
+    ctx.fillStyle='#c8a070'; ctx.fillRect(-2*p,-6*p,4*p,3*p);
+    // Head
+    ctx.fillStyle='#c8a070'; ctx.fillRect(-6*p,-20*p,12*p,14*p);
+    // White fluffy hair
+    ctx.fillStyle='#e8e8e0'; ctx.fillRect(-7*p,-26*p,14*p,9*p);
+    ctx.fillRect(-8*p,-23*p,3*p,7*p); ctx.fillRect(5*p,-22*p,3*p,5*p);
+    ctx.fillStyle='#d0d0c8'; ctx.fillRect(-7*p,-26*p,7*p,4*p);
+    // Glasses
+    ctx.strokeStyle='#604020'; ctx.lineWidth=p;
+    ctx.strokeRect(-6*p,-13*p,5*p,3*p); ctx.strokeRect(1*p,-13*p,5*p,3*p);
+    ctx.beginPath(); ctx.moveTo(-p,-12*p); ctx.lineTo(p,-12*p); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-6*p,-12*p); ctx.lineTo(-8*p,-11*p); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6*p,-12*p); ctx.lineTo(8*p,-11*p); ctx.stroke();
+    // Eyes
+    ctx.fillStyle='#3a1a08'; ctx.fillRect(-5*p,-12*p,3*p,2*p); ctx.fillRect(2*p,-12*p,3*p,2*p);
+    ctx.fillStyle='#8a5038'; ctx.fillRect(-4*p,-12*p,p,p); ctx.fillRect(2*p,-12*p,p,p);
+    // Mouth + wrinkles
+    ctx.fillStyle='#c09060'; ctx.fillRect(-3*p,-7*p,6*p,p);
+    ctx.fillStyle='rgba(0,0,0,0.1)'; ctx.fillRect(-6*p,-10*p,3*p,p); ctx.fillRect(3*p,-10*p,3*p,p);
+    // Speech bubble wobble
+    const bubAlpha=0.5+0.5*Math.sin(t/700);
+    ctx.globalAlpha=bubAlpha;
+    ctx.fillStyle='#ffe600'; ctx.font=`${p*3}px monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText('...',0,-28*p); ctx.globalAlpha=1;
+    ctx.restore();
+  }
+});
+
+/* ────────────────── COP NPC ────────────────── */
+SOBJECTS.push({
+  id:'cop', tx:44,ty:11, w:1,h:2, hx:44,hy:11,hw:1,hh:2,
+  label:'Officer Briggs',
+  interact(){
+    if(copWarned){
+      DialogSystem.show({
+        speaker:'OFFICER BRIGGS',
+        speakerPortrait:'cop',
+        playerPortrait:'normal',
+        lines:[
+          { text:'"I\'m watching you."', expr:'suspicious' },
+          { text:'"Both eyes. All the time. Even when I blink."', expr:'angry' },
+        ],
+      });
+      return;
+    }
+    DialogSystem.show({
+      speaker:'OFFICER BRIGGS',
+      speakerPortrait:'cop',
+      playerPortrait:'normal',
+      lines:[
+        { text:'"Hey. You. Stop."', expr:'suspicious' },
+        { text:'"You\'ve been standing around looking suspicious."', expr:'angry' },
+        { text:'"This is a legitimate neighbourhood. Mostly."', expr:'normal' },
+        { text:'"State your business."', expr:'suspicious' },
+      ],
+      choices:[
+        { label:'I\'m just taking a walk, officer.', value:'walk' },
+        { label:'I live around here. Barely.', value:'local' },
+        { label:'*Run*', value:'run' },
+      ],
+      onChoice(val){
+        copWarned=true;
+        saveState({ copWarned:true });
+        if(val==='walk'){
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'OFFICER BRIGGS',
+              speakerPortrait:'cop',
+              playerPortrait:'normal',
+              lines:[
+                { text:'"A walk. Sure."', expr:'suspicious' },
+                { text:'"People who just \'take walks\' don\'t look like that."', expr:'angry' },
+                { text:'"Move along. And don\'t let me catch you near that water guy."', expr:'suspicious' },
+              ],
+            });
+          },80);
+        } else if(val==='local'){
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'OFFICER BRIGGS',
+              speakerPortrait:'cop',
+              playerPortrait:'normal',
+              lines:[
+                { text:'"Barely. Right."', expr:'suspicious' },
+                { text:'"I\'m gonna need you to look slightly less criminal."', expr:'normal' },
+                { text:'"For the neighbourhood\'s sake."', expr:'angry' },
+              ],
+            });
+          },80);
+        } else {
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'OFFICER BRIGGS',
+              speakerPortrait:'cop',
+              playerPortrait:'scared',
+              lines:[
+                { text:'"..."', expr:'angry' },
+                { text:'"Did you just... *run in place*?"', expr:'suspicious' },
+                { text:'"You didn\'t go anywhere."', expr:'normal' },
+                { text:'"That\'s somehow worse."', expr:'angry' },
+              ],
+            });
+          },80);
+        }
+      }
+    });
+  },
+  draw(ctx){
+    const t=Date.now();
+    const bob=Math.sin(t/800)*SCALE*0.4;
+    ctx.save(); ctx.translate(S/2,S+bob);
+    const p=SCALE;
+    // Shadow
+    ctx.globalAlpha=0.15; ctx.fillStyle='#000';
+    ctx.beginPath(); ctx.ellipse(0,S*0.42,S*0.26,S*0.06,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+    // Legs
+    ctx.fillStyle='#1a2848'; ctx.fillRect(-4*p,0,3*p,10*p); ctx.fillRect(p,0,3*p,10*p);
+    // Shoes
+    ctx.fillStyle='#0a0a18'; ctx.fillRect(-6*p,10*p,6*p,3*p); ctx.fillRect(p,10*p,6*p,3*p);
+    // Body — uniform
+    ctx.fillStyle='#1a2848'; ctx.fillRect(-8*p,-14*p,16*p,14*p);
+    ctx.fillStyle='#141e38'; ctx.fillRect(-8*p,-14*p,4*p,10*p); ctx.fillRect(4*p,-14*p,4*p,10*p);
+    // Badge
+    ctx.fillStyle='#c8a030'; ctx.fillRect(-2*p,-11*p,4*p,5*p);
+    ctx.fillStyle='#a07818'; ctx.fillRect(-p,-10*p,2*p,3*p);
+    // Belt
+    ctx.fillStyle='#0a0a18'; ctx.fillRect(-8*p,-2*p,16*p,3*p);
+    ctx.fillStyle='#c8a030'; ctx.fillRect(-2*p,-2*p,4*p,3*p);
+    // Arms
+    ctx.fillStyle='#1a2848'; ctx.fillRect(-12*p,-12*p,5*p,14*p); ctx.fillRect(7*p,-12*p,5*p,14*p);
+    ctx.fillStyle='#d0a880'; ctx.fillRect(-12*p,1*p,5*p,4*p); ctx.fillRect(7*p,1*p,5*p,4*p);
+    // Neck
+    ctx.fillStyle='#d0a880'; ctx.fillRect(-2*p,-16*p,4*p,3*p);
+    // Head
+    ctx.fillStyle='#d0a880'; ctx.fillRect(-6*p,-28*p,12*p,12*p);
+    // Hat
+    ctx.fillStyle='#1a2848'; ctx.fillRect(-8*p,-32*p,16*p,4*p); ctx.fillRect(-5*p,-40*p,10*p,9*p);
+    ctx.fillStyle='#c8a030'; ctx.fillRect(-5*p,-32*p,10*p,p); ctx.fillRect(-2*p,-37*p,4*p,4*p);
+    ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillRect(-6*p,-29*p,12*p,4*p);
+    // Eyes — always suspicious
+    ctx.fillStyle='#2a1808'; ctx.fillRect(-5*p,-23*p,4*p,3*p); ctx.fillRect(p,-23*p,4*p,3*p);
+    ctx.fillStyle='#c8a030'; ctx.fillRect(-4*p,-22*p,2*p,2*p); ctx.fillRect(2*p,-22*p,2*p,2*p);
+    ctx.fillStyle='#2a1808'; ctx.fillRect(-5*p,-26*p,5*p,2*p); ctx.fillRect(0,-25*p,5*p,2*p);
+    // Moustache
+    ctx.fillStyle='#3a2a18'; ctx.fillRect(-5*p,-18*p,10*p,3*p);
+    ctx.fillStyle='#2a1a08'; ctx.fillRect(-5*p,-17*p,5*p,2*p);
+    // Walkie-talkie
+    ctx.fillStyle='#2a3858'; ctx.fillRect(-14*p,-4*p,4*p,8*p);
+    ctx.fillStyle='#40c040'; ctx.fillRect(-13*p,-6*p,2*p,p);
+    ctx.restore();
+  }
+});
+
+/* ────────────────── HOMELESS GUY NPC ────────────────── */
+SOBJECTS.push({
+  id:'homeless', tx:58,ty:11, w:1,h:2, hx:58,hy:11,hw:1,hh:2,
+  label:'Man on Bench',
+  interact(){
+    if(homelessHelped){
+      DialogSystem.show({
+        speaker:'GARY',
+        speakerPortrait:'homeless',
+        playerPortrait:'normal',
+        lines:[
+          { text:'"Still out here. Same as you."', expr:'sad' },
+          { text:'"Tuesday just keeps going, doesn\'t it."', expr:'normal' },
+        ],
+      });
+      return;
+    }
+    DialogSystem.show({
+      speaker:'GARY',
+      speakerPortrait:'homeless',
+      playerPortrait:'normal',
+      lines:[
+        { text:'"Hey man."', expr:'normal' },
+        { text:'"You got any change? Even like... €1?"', expr:'sad' },
+        { text:'"I haven\'t eaten since... what day is it?"', expr:'sad' },
+        { text:'"Tuesday? It\'s always Tuesday."', expr:'normal' },
+      ],
+      choices:[
+        sp.money>=1
+          ? { label:`Give €1 (Balance: €${sp.money})`, value:'give' }
+          : { label:'Give €1 (You\'re broke)', value:'broke' },
+        { label:'Sorry man, can\'t help.', value:'refuse' },
+        { label:'It is, in fact, Tuesday.', value:'confirm' },
+      ],
+      onChoice(val){
+        homelessHelped=true;
+        saveState({ homelessHelped:true });
+        if(val==='give' && sp.money>=1){
+          sp.money-=1;
+          saveState({ money:sp.money });
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'GARY',
+              speakerPortrait:'homeless',
+              playerPortrait:'happy',
+              lines:[
+                { text:'"Oh man. Thank you. Seriously."', expr:'normal' },
+                { text:'"You\'re the first decent person I\'ve seen all day."', expr:'normal' },
+                { text:'"Hey — word of advice. The pigeons by the clock tower? Trained."', expr:'normal' },
+                { text:'"Like, actually trained. Someone\'s making bank."', expr:'normal' },
+                { text:'★ +10 Dignity. Some things matter more than money.', speaker:'left', expr:'happy' },
+              ],
+              onClose(){ sp.dignity=(sp.dignity||0)+10; saveState({dignity:sp.dignity}); }
+            });
+          },80);
+        } else if(val==='broke'){
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'GARY',
+              speakerPortrait:'homeless',
+              playerPortrait:'sad',
+              lines:[
+                { text:'"Nah man, don\'t worry about it."', expr:'sad' },
+                { text:'"We\'re basically the same, you and me."', expr:'sad' },
+                { text:'"That\'s... that\'s not comforting at all actually."', expr:'normal' },
+              ],
+            });
+          },80);
+        } else if(val==='refuse'){
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'GARY',
+              speakerPortrait:'homeless',
+              playerPortrait:'normal',
+              lines:[
+                { text:'"It\'s fine man. It\'s fine."', expr:'sad' },
+                { text:'"I\'ve got my cardboard. My thoughts."', expr:'sad' },
+                { text:'"And a very philosophical Tuesday."', expr:'normal' },
+              ],
+            });
+          },80);
+        } else {
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'GARY',
+              speakerPortrait:'homeless',
+              playerPortrait:'normal',
+              lines:[
+                { text:'"Yeah. Yeah it is."', expr:'normal' },
+                { text:'"They\'re all Tuesday in the end."', expr:'sad' },
+                { text:'"Deepest thing anyone\'s said to me in weeks."', expr:'normal' },
+              ],
+            });
+          },80);
+        }
+      }
+    });
+  },
+  draw(ctx){
+    const t=Date.now();
+    ctx.save(); ctx.translate(S/2, S*0.6);
+    const p=SCALE;
+    // Bench
+    ctx.fillStyle='#4a3820'; ctx.fillRect(-8*p,4*p,16*p,3*p); // seat
+    ctx.fillRect(-8*p,7*p,3*p,6*p); ctx.fillRect(5*p,7*p,3*p,6*p); // legs
+    ctx.fillStyle='#5a4828'; ctx.fillRect(-8*p,4*p,16*p,p);
+    // Body — slumped
+    ctx.fillStyle='#4a3820'; ctx.fillRect(-6*p,-8*p,12*p,12*p);
+    ctx.fillStyle='#3a2810'; ctx.fillRect(-6*p,-8*p,4*p,8*p);
+    // Torn edges
+    ctx.fillStyle='#2a1808'; ctx.fillRect(-6*p,3*p,2*p,5*p); ctx.fillRect(4*p,2*p,2*p,4*p);
+    // Patch
+    ctx.fillStyle='#6a4820'; ctx.fillRect(-2*p,-4*p,5*p,4*p);
+    // Arms — resting
+    ctx.fillStyle='#4a3820'; ctx.fillRect(-10*p,-6*p,5*p,10*p); ctx.fillRect(5*p,-6*p,5*p,10*p);
+    ctx.fillStyle='#c0a060'; ctx.fillRect(-10*p,3*p,5*p,3*p); ctx.fillRect(5*p,3*p,5*p,3*p);
+    // Neck
+    ctx.fillStyle='#b89050'; ctx.fillRect(-2*p,-10*p,4*p,3*p);
+    // Head — bowed slightly
+    ctx.fillStyle='#b89050'; ctx.fillRect(-5*p,-22*p,10*p,12*p);
+    // Messy hair
+    ctx.fillStyle='#3a2a10'; ctx.fillRect(-6*p,-27*p,12*p,7*p);
+    ctx.fillRect(-7*p,-25*p,3*p,5*p); ctx.fillRect(4*p,-24*p,4*p,4*p);
+    ctx.fillStyle='#4a3820'; ctx.fillRect(-6*p,-22*p,4*p,2*p);
+    // Eyes — drooping
+    ctx.fillStyle='#2a1a08'; ctx.fillRect(-4*p,-16*p,3*p,3*p); ctx.fillRect(p,-16*p,3*p,3*p);
+    ctx.fillStyle='#8a6040'; ctx.fillRect(-3*p,-15*p,2*p,2*p); ctx.fillRect(p,-15*p,2*p,2*p);
+    ctx.fillStyle='#3a2a10'; ctx.fillRect(-4*p,-19*p,2*p,2*p); ctx.fillRect(-2*p,-18*p,2*p,2*p);
+    ctx.fillRect(0,-18*p,2*p,2*p); ctx.fillRect(2*p,-19*p,2*p,2*p);
+    // Stubble
+    for(let sx=-4;sx<=4;sx+=2) for(let sy=-13;sy<=-8;sy+=2){
+      ctx.fillStyle='rgba(50,35,15,0.45)'; ctx.fillRect(sx*p,sy*p,p,p);
+    }
+    // Mouth — sad
+    ctx.fillStyle='#7a5030'; ctx.fillRect(-2*p,-10*p,4*p,p);
+    ctx.fillRect(-3*p,-9*p,2*p,p); ctx.fillRect(p,-9*p,2*p,p);
+    // Sign
+    ctx.fillStyle='#c8b090'; ctx.fillRect(6*p,-4*p,8*p,6*p);
+    ctx.fillStyle='#1a1200'; ctx.font=`${p*1.5}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('HELP',10*p,-p);
+    ctx.restore();
+  }
+});
+
+/* ────────────────── GRAFFITI WALL ────────────────── */
+SOBJECTS.push({
+  id:'graffiti', tx:35,ty:4, w:3,h:1, hx:35,hy:4,hw:3,hh:1,
+  label:'Graffiti Wall',
+  interact(){
+    DialogSystem.show({
+      speaker:'NARRATOR',
+      speakerPortrait:'unknown',
+      playerPortrait:'normal',
+      lines:[
+        { text:'"RENT IS A SCAM" — written in seven colours.', speaker:'right' },
+        { text:'Below it, in tiny letters: "Also Kevin was here."', speaker:'right' },
+        { text:'"...Kevin."', speaker:'left', expr:'surprised' },
+      ],
+    });
+  },
+  draw(ctx){
+    // Base wall
+    for(let i=0;i<3;i++){
+      ctx.save(); ctx.translate(i*S,0);
+      ctx.fillStyle=['#4a3828','#4a3828','#4a3828'][i]; ctx.fillRect(0,0,S,S);
+      ctx.restore();
+    }
+    // Graffiti
+    ctx.save();
+    ctx.font=`bold ${SCALE*3}px monospace`; ctx.textAlign='left'; ctx.textBaseline='middle';
+    // Main text
+    const grad=ctx.createLinearGradient(0,0,3*S,0);
+    grad.addColorStop(0,'#c040ff'); grad.addColorStop(0.5,'#ff4040'); grad.addColorStop(1,'#40c0ff');
+    ctx.fillStyle=grad;
+    ctx.fillText('RENT IS A SCAM',SCALE*3,S*0.45);
+    // Outline
+    ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=SCALE*0.5;
+    ctx.strokeText('RENT IS A SCAM',SCALE*3,S*0.45);
+    // Small tag
+    ctx.fillStyle='rgba(255,255,100,0.7)'; ctx.font=`${SCALE*1.5}px monospace`;
+    ctx.fillText('also kevin was here',SCALE*4,S*0.78);
+    ctx.restore();
+  }
+});
+
+/* ────────────────── PARKED CAR ────────────────── */
+SOBJECTS.push({
+  id:'car', tx:48,ty:4, w:3,h:1, hx:48,hy:5,hw:3,hh:0,
+  label:'Parked Car',
+  interact(){
+    DialogSystem.show({
+      speaker:'NARRATOR',
+      speakerPortrait:'unknown',
+      playerPortrait:'normal',
+      lines:[
+        { text:'A dented red Toyota. One window is duct-taped.', speaker:'right' },
+        { text:'A parking ticket flaps under the wiper. Number 47.', speaker:'right' },
+        { text:'"I wonder if this is the car Gerald drove."', speaker:'left', expr:'normal' },
+      ],
+    });
+  },
+  draw(ctx){
+    const col=C.carA;
+    // Body
+    ctx.fillStyle=col; ctx.fillRect(SCALE*2,SCALE*4,3*S-SCALE*4,S-SCALE*4);
+    // Roof
+    ctx.fillStyle='#a02010'; ctx.fillRect(S*0.6,0,S*1.8,S*0.7);
+    ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(S*0.6,0,S*1.8,SCALE*2);
+    // Windows
+    ctx.fillStyle='#2a3858'; ctx.fillRect(S*0.65,SCALE*2,S*0.7,S*0.55);
+    ctx.fillRect(S*1.4,SCALE*2,S*0.9,S*0.55);
+    ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.fillRect(S*0.65,SCALE*2,SCALE*2,S*0.55);
+    // Duct tape on one window
+    ctx.fillStyle='rgba(200,200,180,0.6)'; ctx.fillRect(S*1.4+SCALE*3,SCALE*2,S*0.3,S*0.55);
+    // Wheels
+    ctx.fillStyle='#1a1a18'; ctx.beginPath(); ctx.arc(S*0.7,S,S*0.35,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(2.3*S,S,S*0.35,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#606058'; ctx.beginPath(); ctx.arc(S*0.7,S,S*0.18,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(2.3*S,S,S*0.18,0,Math.PI*2); ctx.fill();
+    // Dents
+    ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=SCALE;
+    ctx.beginPath(); ctx.arc(SCALE*8,S*0.6,SCALE*3,0.3,1.8); ctx.stroke();
+    // Parking ticket
+    const tk=0.6+0.4*Math.sin(Date.now()/300);
+    ctx.globalAlpha=tk;
+    ctx.fillStyle='#f0e840'; ctx.fillRect(S-SCALE*2,0,SCALE*4,SCALE*5);
+    ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.font=`${SCALE*1.5}px monospace`;
+    ctx.textAlign='center'; ctx.fillText('47',S,SCALE*4);
+    ctx.globalAlpha=1;
+  }
+});
+
+/* ────────────────── FOUNTAIN ────────────────── */
+SOBJECTS.push({
+  id:'fountain', tx:64,ty:4, w:4,h:2, hx:64,hy:4,hw:4,hh:2,
+  label:'Town Fountain',
+  interact(){
+    DialogSystem.show({
+      speaker:'NARRATOR',
+      speakerPortrait:'unknown',
+      playerPortrait:'normal',
+      lines:[
+        { text:'A stone fountain. The water is... slightly too green.', speaker:'right' },
+        { text:'Three pigeons stand around it like they\'re running a business.', speaker:'right' },
+        { text:'One of them makes direct eye contact.', speaker:'right' },
+        { text:'"Is this... a pigeon cartel?"', speaker:'left', expr:'surprised' },
+        { text:'You\'re starting to think Gary the homeless guy knew something.', speaker:'right' },
+      ],
+      choices:[
+        { label:'Throw a coin in the fountain (wish for riches)', value:'coin' },
+        { label:'Just walk away from the pigeons.', value:'leave' },
+        { label:'Try to recruit a pigeon.', value:'pigeon' },
+      ],
+      onChoice(val){
+        if(val==='coin'){
+          if(sp.money>0){
+            sp.money-=1;
+            saveState({money:sp.money});
+            setTimeout(()=>{
+              DialogSystem.show({
+                speaker:'NARRATOR',
+                speakerPortrait:'unknown',
+                playerPortrait:'happy',
+                lines:[
+                  { text:'You toss a coin in. It splashes.', speaker:'right' },
+                  { text:'The pigeons stare. One nods slowly.', speaker:'right' },
+                  { text:'"Did a pigeon just... nod at me?"', speaker:'left', expr:'surprised' },
+                  { text:'Nothing else happens. But you feel marginally less doomed.', speaker:'right' },
+                ],
+              });
+            },80);
+          } else {
+            setTimeout(()=>{
+              DialogSystem.show({
+                speaker:'NARRATOR',
+                speakerPortrait:'unknown',
+                playerPortrait:'sad',
+                lines:[
+                  { text:'You reach into your pocket. Empty.', speaker:'right' },
+                  { text:'"I can\'t even afford a wish."', speaker:'left', expr:'sad' },
+                  { text:'The pigeons look disappointed.', speaker:'right' },
+                ],
+              });
+            },80);
+          }
+        } else if(val==='pigeon'){
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'NARRATOR',
+              speakerPortrait:'unknown',
+              playerPortrait:'happy',
+              lines:[
+                { text:'You crouch down and extend your hand.', speaker:'right' },
+                { text:'A pigeon walks over. Studies you.', speaker:'right' },
+                { text:'It drops a receipt at your feet and walks away.', speaker:'right' },
+                { text:'"€0.50 — Tuesday Commission" it reads.', speaker:'right' },
+                { text:'"This pigeon has a better business model than me."', speaker:'left', expr:'surprised' },
+                { text:'★ +€0 but +15 Dignity. You connected with something real.', speaker:'left', expr:'happy' },
+              ],
+              onClose(){ sp.dignity=(sp.dignity||0)+15; saveState({dignity:sp.dignity}); }
+            });
+          },80);
+        } else {
+          setTimeout(()=>{
+            DialogSystem.show({
+              speaker:'NARRATOR',
+              speakerPortrait:'unknown',
+              playerPortrait:'normal',
+              lines:[
+                { text:'Wise choice. Never get involved with pigeon business.', speaker:'right' },
+              ],
+            });
+          },80);
+        }
+      }
+    });
+  },
+  draw(ctx){
+    const t=Date.now();
+    // Stone basin outer
+    ctx.fillStyle='#706858'; ctx.fillRect(0,SCALE*3,4*S,2*S-SCALE*3);
+    ctx.fillStyle='#585048'; ctx.fillRect(SCALE*2,SCALE*5,4*S-SCALE*4,2*S-SCALE*7);
+    // Water — animated shimmer
+    const wAlpha=0.7+0.15*Math.sin(t/400);
+    ctx.fillStyle=`rgba(30,100,90,${wAlpha})`; ctx.fillRect(SCALE*3,SCALE*6,4*S-SCALE*6,S-SCALE*4);
+    for(let i=0;i<6;i++){
+      const wx=SCALE*3+(4*S-SCALE*6)*(i/6), wy=SCALE*6+(S-SCALE*4)*0.3;
+      const wa=0.3*Math.sin(t/300+i*0.8);
+      ctx.fillStyle=`rgba(80,200,180,${0.15+Math.abs(wa)})`;
+      ctx.fillRect(wx,wy,SCALE*4,SCALE*1.5);
+    }
+    // Centre post
+    ctx.fillStyle='#807060'; ctx.fillRect(2*S-SCALE*2,SCALE*2,SCALE*4,SCALE*5);
+    ctx.fillStyle='#908070'; ctx.fillRect(2*S-SCALE*3,0,SCALE*6,SCALE*4);
+    ctx.fillStyle='#a09080'; ctx.fillRect(2*S-SCALE*3,0,SCALE*3,SCALE*4);
+    // Water jets (animated)
+    for(let j=0;j<4;j++){
+      const angle=j*Math.PI/2+t/2000;
+      const jx=2*S+Math.cos(angle)*SCALE*6;
+      const jy=SCALE*2+Math.sin(angle)*SCALE*3;
+      const jAlpha=0.4+0.3*Math.sin(t/300+j);
+      ctx.fillStyle=`rgba(80,180,200,${jAlpha})`; ctx.fillRect(jx,jy,SCALE*2,SCALE*2);
+    }
+    // Coin glints
+    for(let c=0;c<5;c++){
+      const ca=Math.abs(Math.sin(t/800+c*1.7));
+      ctx.fillStyle=`rgba(240,190,30,${ca*0.8})`;
+      ctx.fillRect(SCALE*4+c*SCALE*5,SCALE*7,SCALE*2,SCALE*2);
+    }
+    // Pigeons
+    for(let pg=0;pg<3;pg++){
+      const px=(pg*SCALE*12+SCALE*3)+Math.sin(t/1000+pg)*SCALE;
+      const py=SCALE*4+Math.cos(t/800+pg*2)*SCALE*0.5;
+      const pbob=pg===1?Math.sin(t/400)*SCALE:0;
+      ctx.save(); ctx.translate(px,py+pbob);
+      ctx.fillStyle='#606060'; ctx.fillRect(-SCALE*2,-SCALE*2,SCALE*5,SCALE*4);
+      ctx.fillStyle='#505050'; ctx.fillRect(-SCALE*3,-SCALE,SCALE*2,SCALE*2);
+      ctx.fillStyle='#808080'; ctx.fillRect(-SCALE,-SCALE*4,SCALE*3,SCALE*3);
+      ctx.fillStyle='#f0a020'; ctx.fillRect(-SCALE,-SCALE*3,SCALE*2,SCALE);
+      ctx.fillStyle='rgba(255,150,0,0.8)'; ctx.fillRect(-SCALE*2,SCALE,SCALE,SCALE*3);
+      ctx.fillRect(SCALE,SCALE,SCALE,SCALE*3);
+      // Pigeon eye
+      ctx.fillStyle='#ff2020'; ctx.fillRect(-SCALE*2,-SCALE*3,SCALE,SCALE);
+      ctx.restore();
+    }
+  }
+});
+
+/* ── Strange water trip effect ── */
+let tripActive=false, tripTimer=0;
+const TRIP_DURATION=15;
+const TRIP_MESSAGES=['"kevin...?"','"the floor is breathing"','"am i the rat"','"RENT IS A SOCIAL CONSTRUCT"','"the walls know your name"','"gerald was real"','"tuesday. always tuesday."','"kevin sees you too"'];
+let tripMsgTimer=0, tripMsgIdx=0, tripMsgVisible=false;
+
+function tryConsumeStrangeWater(){
+  const idx=sp.inventory.findIndex(i=>i.id==='strange_water');
+  if(idx===-1){ return; }
+  sp.inventory.splice(idx,1);
+  saveState({money:sp.money,inventory:sp.inventory,strangeWaterBought:dealerSold});
+  tripActive=true; tripTimer=0; tripMsgTimer=0; tripMsgVisible=false;
+  DialogSystem.show({
+    speaker:'NARRATOR', speakerPortrait:'unknown', playerPortrait:'surprised',
+    lines:[
+      { text:'You drink it.', speaker:'right' },
+      { text:'"It tastes like battery acid and nostalgia."', speaker:'left', expr:'surprised' },
+      { text:'Something shifts. The street wobbles.', speaker:'right' },
+    ],
+  });
+}
+
+/* ── Player ── */
+const sp={
+  tx: 3.5, ty: 4.5,
+  facing:'right', frame:0, frameTimer:0,
+  money:  _initState.money  ?? 0,
+  dignity:_initState.dignity ?? 0,
+  inventory: _initState.inventory ?? [],
+  weapon: _initState.weapon ?? null,
+};
+
+const skeys={};
+let sGameState='playing'; // playing | paused | inventory
+let sinventoryOpen=false;
+let returnTriggered=false;
+let exitRight=false;
+
+/* ── Camera ── */
+let camX=0;
+
+function updateCamera(canvasW){
+  // World pixel width
+  const worldW=COLS*S;
+  const viewW=canvasW;
+  // Center on player
+  camX=sp.tx*S - viewW/2;
+  // Clamp
+  camX=Math.max(0,Math.min(worldW-viewW,camX));
+}
+
+/* ── Key handling ── */
+document.addEventListener('keydown',e=>{
+  skeys[e.key.toLowerCase()]=true;
+  if(DialogSystem.isOpen()){
+    // Dialog handles its own keys; but block movement
+    return;
+  }
+  if(e.key.toLowerCase()==='e'){
+    if(sinventoryOpen){ sinventoryOpen=false; sGameState='playing'; return; }
+    sTryInteract();
+  }
+  if(e.key.toLowerCase()==='q'){
+    if(sinventoryOpen){ sinventoryOpen=false; sGameState='playing'; }
+    else { sinventoryOpen=true; sGameState='inventory'; }
+  }
+  if(e.key.toLowerCase()==='f') tryConsumeStrangeWater();
+  if(e.key==='Escape'){
+    if(sinventoryOpen){ sinventoryOpen=false; sGameState='playing'; return; }
+    sGameState=sGameState==='paused'?'playing':'paused';
+  }
+});
+document.addEventListener('keyup',e=>{ skeys[e.key.toLowerCase()]=false; });
+
+/* ── Canvas setup ── */
+let sCanvas,sCtx,suiCanvas,suiCtx;
+
+window.addEventListener('load',()=>{
+  const fi=document.getElementById('fade-in');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ fi.style.opacity='0'; }));
+  setTimeout(()=>fi.remove(),1200);
+
+  sCanvas  =document.getElementById('street-canvas');
+  suiCanvas=document.getElementById('ui-canvas');
+  sCtx =sCanvas.getContext('2d');
+  suiCtx=suiCanvas.getContext('2d');
+  sCtx.imageSmoothingEnabled=suiCtx.imageSmoothingEnabled=false;
+  resizeStreet();
+  window.addEventListener('resize',resizeStreet);
+
+  // Entry dialog
+  setTimeout(()=>{
+    DialogSystem.show({
+      speaker:'NARRATOR', speakerPortrait:'unknown', playerPortrait:'happy',
+      lines:[
+        { text:'OUTSIDE. Finally.', speaker:'right' },
+        { text:'"Fresh air. Smells like exhaust and regret."', speaker:'left', expr:'happy' },
+        { text:'The street stretches far in both directions.', speaker:'right' },
+        { text:'"There\'s a door back to your apartment on the left. But why go back?"', speaker:'right' },
+        { text:'"You\'ve got nothing to lose. Explore."', speaker:'right' },
+      ],
+    });
+  },600);
+
+  requestAnimationFrame(sGameLoop);
+});
+
+function resizeStreet(){
+  const W=window.innerWidth, H=window.innerHeight;
+  // Canvas is world-sized; we pan via camera offset
+  sCanvas.width=COLS*S; sCanvas.height=ROWS*S;
+  sCanvas.style.width=(COLS*S)+'px'; sCanvas.style.height=(ROWS*S)+'px';
+  sCanvas.style.top='0'; sCanvas.style.left='0';
+  suiCanvas.width=W; suiCanvas.height=H;
+  suiCanvas.style.width=W+'px'; suiCanvas.style.height=H+'px';
+  // Position canvas inside wrapper — shifted by camera
+  updateCamera(W);
+}
+
+/* ── Game loop ── */
+let sLastTime=0;
+function sGameLoop(ts){
+  const dt=Math.min((ts-sLastTime)/1000,0.05); sLastTime=ts;
+  const isDialog=DialogSystem.isOpen();
+  if(sGameState==='playing' && !isDialog) sUpdatePlayer(dt);
+  if(tripActive){
+    tripTimer+=dt; tripMsgTimer+=dt;
+    if(tripMsgTimer>2.5){ tripMsgTimer=0; tripMsgVisible=true; tripMsgIdx=Math.floor(Math.random()*TRIP_MESSAGES.length); }
+    if(tripTimer>=TRIP_DURATION){ tripActive=false; tripTimer=0; tripMsgVisible=false; }
+  }
+  sDrawWorld();
+  sDrawUI();
+  if(tripActive) drawTripEffect();
+  requestAnimationFrame(sGameLoop);
+}
+
+const SSPEED=5.5;
+function sUpdatePlayer(dt){
+  let dx=0,dy=0;
+  if(skeys['w']||skeys['arrowup'])    dy=-1;
+  if(skeys['s']||skeys['arrowdown'])  dy= 1;
+  if(skeys['a']||skeys['arrowleft'])  dx=-1;
+  if(skeys['d']||skeys['arrowright']) dx= 1;
+  if(dx&&dy){dx*=0.707;dy*=0.707;}
+  if(dx||dy){
+    const nx=sp.tx+dx*SSPEED*dt, ny=sp.ty+dy*SSPEED*dt;
+    if(!sSolid(nx,sp.ty)) sp.tx=nx;
+    if(!sSolid(sp.tx,ny)) sp.ty=ny;
+    if(Math.abs(dx)>Math.abs(dy)) sp.facing=dx>0?'right':'left';
+    else sp.facing=dy>0?'down':'up';
+    sp.frameTimer+=dt;
+    if(sp.frameTimer>0.12){sp.frameTimer=0;sp.frame=(sp.frame+1)%4;}
+  } else sp.frame=0;
+
+  // Update camera
+  updateCamera(window.innerWidth);
+  // Pan canvas
+  const wrapper=document.getElementById('street-wrapper');
+  sCanvas.style.left=(-Math.round(camX))+'px';
+  sCanvas.style.top=((window.innerHeight-ROWS*S)/2)+'px';
+
+  // Return home — door at col 3, row 3
+  if(sp.ty<=3.5&&sp.tx>=2.5&&sp.tx<=4.5 && !returnTriggered){
+    triggerReturnHome();
+  }
+  // Street exit east
+  if(sp.tx>=COLS-1 && !exitRight){
+    exitRight=true;
+    // Future: load next street zone
+    DialogSystem.show({
+      speaker:'NARRATOR', speakerPortrait:'unknown', playerPortrait:'normal',
+      lines:[
+        { text:'You\'ve reached the end of the block.', speaker:'right' },
+        { text:'"More street. But not today\'s street."', speaker:'right' },
+        { text:'[More areas coming soon]', speaker:'right' },
+      ],
+      onClose(){ exitRight=false; sp.tx=COLS-1.5; }
+    });
+  }
+}
+
+function sSolid(tx,ty){
+  const c=Math.floor(tx),r=Math.floor(ty);
+  if(c<0||r<0||c>=COLS||r>=ROWS) return true;
+  const t=SMAP[r]?.[c];
+  if(SOLID_STREET.has(t)) return true;
+  for(const obj of SOBJECTS){
+    if(obj._skip) continue;
+    const hw=obj.hw,hh=obj.hh;
+    if(!hw||!hh) continue;
+    const pL=tx+0.15,pR=tx+0.85,pT=ty+0.15,pB=ty+0.85;
+    if(pR>obj.hx&&pL<obj.hx+hw&&pB>obj.hy&&pT<obj.hy+hh) return true;
+  }
+  return false;
+}
+
+function triggerReturnHome(){
+  if(returnTriggered) return;
+  returnTriggered=true; sGameState='exiting';
+  saveState({money:sp.money,inventory:sp.inventory,weapon:sp.weapon,dignity:sp.dignity});
+  const fade=document.createElement('div');
+  fade.style.cssText='position:fixed;inset:0;background:#0a0604;z-index:9999;opacity:0;transition:opacity 0.8s ease;pointer-events:none;';
+  document.body.appendChild(fade);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ fade.style.opacity='1'; }));
+  setTimeout(()=>{ window.location.href='Game.html?from=street'; },900);
+}
+
+function collectCoin(){
+  streetCoinCollected=true; sp.money+=5;
+  saveState({money:sp.money,streetCoinCollected:true,inventory:sp.inventory});
+}
+
+function sTryInteract(){
+  if(DialogSystem.isOpen()) return;
+  const off={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+  const [ox,oy]=off[sp.facing];
+  const cx=Math.floor(sp.tx)+ox, cy=Math.floor(sp.ty)+oy;
+  const px=Math.floor(sp.tx), py=Math.floor(sp.ty);
+  for(const obj of SOBJECTS){
+    if(obj._skip) continue;
+    const hit=(cx>=obj.tx&&cx<obj.tx+obj.w&&cy>=obj.ty&&cy<obj.ty+obj.h)
+           ||(px>=obj.tx&&px<obj.tx+obj.w&&py>=obj.ty&&py<obj.ty+obj.h);
+    if(hit){ obj.interact(); return; }
+  }
+  const nearDoor=(SMAP[cy]?.[cx]===_D)||(SMAP[py]?.[px]===_D);
+  if(nearDoor&&py<=3&&px>=2&&px<=4) triggerReturnHome();
+  else if(nearDoor){
+    DialogSystem.show({
+      speaker:'NARRATOR', speakerPortrait:'unknown', playerPortrait:'normal',
+      lines:[{ text:'It\'s someone else\'s building. You\'re not that desperate. Yet.', speaker:'right' }],
+    });
+  }
+}
+
+/* ── DRAW WORLD ── */
+function sDrawWorld(){
+  sCtx.fillStyle='#0a0604'; sCtx.fillRect(0,0,sCanvas.width,sCanvas.height);
+  // Night sky (rows 0-3)
+  const skyH=4*S;
+  const skyGrad=sCtx.createLinearGradient(0,0,0,skyH);
+  skyGrad.addColorStop(0,C.skyTop); skyGrad.addColorStop(0.6,C.skyMid); skyGrad.addColorStop(1,C.skyBot);
+  sCtx.fillStyle=skyGrad; sCtx.fillRect(0,0,COLS*S,skyH);
+  // Stars
+  const tNow=Date.now();
+  for(const st of STARS){
+    const ta=0.4+0.6*Math.abs(Math.sin(tNow/1200+st.twinkle));
+    sCtx.globalAlpha=ta; sCtx.fillStyle=C.star;
+    sCtx.beginPath(); sCtx.arc(st.x,st.y,st.r,0,Math.PI*2); sCtx.fill();
+  }
+  // Moon
+  sCtx.globalAlpha=1;
+  sCtx.fillStyle=C.moonA; sCtx.beginPath(); sCtx.arc(COLS*S*0.82,S*1.2,S*0.8,0,Math.PI*2); sCtx.fill();
+  sCtx.fillStyle=C.moonB; sCtx.beginPath(); sCtx.arc(COLS*S*0.82+S*0.2,S*1,S*0.65,0,Math.PI*2); sCtx.fill();
+  sCtx.fillStyle=C.skyMid; sCtx.beginPath(); sCtx.arc(COLS*S*0.82+S*0.28,S*0.9,S*0.62,0,Math.PI*2); sCtx.fill();
+
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) sDrawTile(c,r);
+
+  // Draw objects sorted by y
+  [...SOBJECTS].filter(o=>!o._skip).sort((a,b)=>(a.ty+a.h)-(b.ty+b.h)).forEach(obj=>{
+    sCtx.save(); sCtx.translate(obj.tx*S, obj.ty*S); obj.draw(sCtx); sCtx.restore();
+  });
+
+  sDrawStreetPlayer();
+  sDrawHint();
+  drawReturnArrow();
+}
+
+/* ── TILE RENDERERS ── */
+function sDrawTile(c,r){
+  sCtx.save(); sCtx.translate(c*S,r*S);
+  const t=SMAP[r]?.[c];
+  if(t===_B)       sDrawBuilding(c,r);
+  else if(t===_P)  sDrawPavement(c,r);
+  else if(t===_R)  sDrawRoad(c,r);
+  else if(t===_M)  sDrawRoadMark(c,r);
+  else if(t===_D)  sDrawBldDoor(c,r);
+  else if(t===_T)  sDrawTree();
+  else if(t===_L){ sDrawPavement(c,r); sDrawLamp(); }
+  else { sCtx.fillStyle='#0a0a0a'; sCtx.fillRect(0,0,S,S); }
+  sCtx.restore();
+}
+
+function sDrawBuilding(c,r){
+  const v=(c*3+r*7)%4;
+  const base=[C.bldA,C.bldB,C.bldC,C.bldD][v];
+  const lit=['#6a5038','#503838','#484858','#3a4838'][v];
+  sCtx.fillStyle=base; sCtx.fillRect(0,0,S,S);
+  sCtx.fillStyle=lit; sCtx.fillRect(0,0,S,SCALE*2);
+  // Brick rows
+  sCtx.strokeStyle='rgba(0,0,0,0.12)'; sCtx.lineWidth=0.5;
+  for(let y=SCALE*2;y<S;y+=SCALE*3){
+    sCtx.beginPath(); sCtx.moveTo(0,y); sCtx.lineTo(S,y); sCtx.stroke();
+  }
+  // Mortar offsets
+  for(let y=SCALE*2;y<S;y+=SCALE*6){
+    sCtx.beginPath(); sCtx.moveTo(0,y+SCALE*1.5); sCtx.lineTo(S/2,y+SCALE*1.5); sCtx.stroke();
+    sCtx.beginPath(); sCtx.moveTo(S/2,y+SCALE*4.5); sCtx.lineTo(S,y+SCALE*4.5); sCtx.stroke();
+  }
+  // Windows — glow at night
+  if(r>=0&&r<=2&&(c+r)%2!==0){
+    const on=(Math.floor(Date.now()/4000)+c+r*5)%7!==0;
+    sCtx.fillStyle=on?C.winOn:C.winOff;
+    sCtx.fillRect(SCALE*3,SCALE*3,S-SCALE*6,S-SCALE*6);
+    if(on){
+      // warm glow
+      sCtx.fillStyle=C.winOnD; sCtx.fillRect(SCALE*3,SCALE*3,S-SCALE*6,SCALE*2);
+      sCtx.fillStyle='rgba(255,220,120,0.12)'; sCtx.fillRect(SCALE*3,SCALE*3,SCALE*3,S-SCALE*6);
+      // Silhouette
+      sCtx.fillStyle='rgba(0,0,0,0.2)'; sCtx.fillRect(SCALE*5,SCALE*5,SCALE*3,SCALE*4);
+    } else {
+      sCtx.fillStyle='rgba(40,50,70,0.6)'; sCtx.fillRect(SCALE*3,SCALE*3,S-SCALE*6,S-SCALE*6);
+    }
+  }
+  sCtx.fillStyle='rgba(0,0,0,0.18)'; sCtx.fillRect(0,S-SCALE*2,S,SCALE*2);
+}
+
+function sDrawPavement(c,r){
+  const v=(c*5+r*11)%3;
+  sCtx.fillStyle=[C.pavA,C.pavB,C.pavC][v]; sCtx.fillRect(0,0,S,S);
+  sCtx.strokeStyle=C.pavLine; sCtx.lineWidth=0.5;
+  if(c%2===0){ sCtx.beginPath(); sCtx.moveTo(0,0); sCtx.lineTo(0,S); sCtx.stroke(); }
+  if(r%2===0){ sCtx.beginPath(); sCtx.moveTo(0,0); sCtx.lineTo(S,0); sCtx.stroke(); }
+  sCtx.fillStyle='rgba(0,0,0,0.08)'; sCtx.fillRect(0,S-SCALE,S,SCALE);
+}
+
+function sDrawRoad(c,r){
+  sCtx.fillStyle=(c+r)%2===0?C.rdA:C.rdB; sCtx.fillRect(0,0,S,S);
+  sCtx.strokeStyle='rgba(255,255,255,0.03)'; sCtx.lineWidth=0.5;
+  sCtx.beginPath(); sCtx.moveTo(0,0); sCtx.lineTo(S,0); sCtx.stroke();
+}
+function sDrawRoadMark(){
+  sCtx.fillStyle=C.rdA; sCtx.fillRect(0,0,S,S);
+  sCtx.fillStyle=C.rdMark; sCtx.fillRect(SCALE*2,SCALE*5,S-SCALE*4,S-SCALE*10);
+  sCtx.fillStyle='rgba(255,255,200,0.18)'; sCtx.fillRect(SCALE*2,SCALE*5,S-SCALE*4,SCALE*2);
+}
+function sDrawBldDoor(c,r){
+  sDrawBuilding(c,r);
+  const gl=0.08+0.05*Math.sin(Date.now()/1500);
+  sCtx.fillStyle='#3a2810'; sCtx.fillRect(SCALE*2,SCALE*2,S-SCALE*4,S-SCALE*2);
+  sCtx.fillStyle='#1a0c04'; sCtx.fillRect(SCALE*3,SCALE*3,S-SCALE*6,S-SCALE*3);
+  sCtx.fillStyle=`rgba(255,200,120,${gl})`; sCtx.fillRect(SCALE*3,SCALE*3,S-SCALE*6,S-SCALE*3);
+  sCtx.fillStyle='rgba(255,200,80,0.18)'; sCtx.fillRect(SCALE*2,SCALE*2,S-SCALE*4,SCALE*2);
+  // Door knob
+  sCtx.fillStyle='#c0a030'; sCtx.beginPath(); sCtx.arc(SCALE*4,S*0.65,SCALE*0.8,0,Math.PI*2); sCtx.fill();
+}
+function sDrawTree(){
+  sDrawPavement(0,0);
+  sCtx.fillStyle=C.treeTk; sCtx.fillRect(S/2-SCALE*2,S*0.4,SCALE*4,S*0.6);
+  sCtx.fillStyle='#4a3a28'; sCtx.fillRect(S/2-SCALE*2,S*0.4,SCALE*2,S*0.6);
+  sCtx.fillStyle=C.treeLvA; sCtx.fillRect(SCALE,0,S-SCALE*2,S*0.5);
+  sCtx.fillStyle=C.treeLvB; sCtx.fillRect(SCALE*2,0,S-SCALE*4,S*0.4);
+  sCtx.fillStyle=C.treeLvC; sCtx.fillRect(SCALE*3,0,S-SCALE*6,S*0.25);
+  sCtx.fillStyle='rgba(255,255,255,0.04)'; sCtx.fillRect(SCALE*2,0,SCALE*3,SCALE*3);
+  sCtx.fillStyle='rgba(0,0,0,0.2)'; sCtx.fillRect(SCALE,S*0.4+SCALE*2,S-SCALE*2,SCALE*2);
+}
+function sDrawLamp(){
+  sCtx.fillStyle=C.lampPost; sCtx.fillRect(S/2-SCALE,0,SCALE*2,S);
+  sCtx.fillStyle='#606058'; sCtx.fillRect(S/2-SCALE,0,SCALE,S);
+  sCtx.fillStyle='#404038'; sCtx.fillRect(S/2-SCALE*3,0,SCALE*6,SCALE*4);
+  sCtx.fillStyle='rgba(255,220,100,0.72)'; sCtx.fillRect(S/2-SCALE*2,SCALE,SCALE*4,SCALE*2);
+  // Halo
+  const haloGrad=sCtx.createRadialGradient(S/2,SCALE*2,0,S/2,SCALE*2,S*0.8);
+  haloGrad.addColorStop(0,'rgba(255,210,80,0.15)'); haloGrad.addColorStop(1,'rgba(255,210,80,0)');
+  sCtx.fillStyle=haloGrad; sCtx.fillRect(-S*0.3,-S*0.2,S*1.6,S*1.5);
+}
+
+/* ── PLAYER ── */
+function sDrawStreetPlayer(){
+  const px=sp.tx*S+S/2, py=sp.ty*S+S/2;
+  const bob=(sp.frame===1||sp.frame===3)?-SCALE:0;
+  const loff=sp.frame===1?2:sp.frame===3?-2:0;
+  const aoff=sp.frame===1?-2:sp.frame===3?2:0;
+  const p=SCALE;
+  sCtx.save(); sCtx.translate(px,py+bob);
+  // Shadow
+  sCtx.globalAlpha=0.2; sCtx.fillStyle='#000';
+  sCtx.beginPath(); sCtx.ellipse(0,S*0.38,S*0.24,S*0.065,0,0,Math.PI*2); sCtx.fill();
+  sCtx.globalAlpha=1;
+  const fl=sp.facing==='left'; if(fl) sCtx.scale(-1,1);
+  // Legs
+  sCtx.fillStyle='#252018'; sCtx.fillRect(-5*p,4*p,4*p,8*p+loff*p); sCtx.fillRect(p,4*p,4*p,8*p-loff*p);
+  sCtx.fillStyle='#101008'; sCtx.fillRect(-7*p,12*p+loff*p,7*p,3*p); sCtx.fillRect(p,12*p-loff*p,7*p,3*p);
+  // Arms
+  sCtx.fillStyle='#506030'; sCtx.fillRect(-9*p,-5*p+aoff*p,4*p,10*p); sCtx.fillRect(5*p,-5*p-aoff*p,4*p,10*p);
+  sCtx.fillStyle='#d0a880'; sCtx.fillRect(-9*p,4*p+aoff*p,4*p,3*p); sCtx.fillRect(5*p,4*p-aoff*p,4*p,3*p);
+  // Body
+  sCtx.fillStyle='#506030'; sCtx.fillRect(-6*p,-8*p,12*p,13*p);
+  sCtx.fillStyle='#3a4a1a'; sCtx.fillRect(-6*p,-8*p,3*p,6*p); sCtx.fillRect(3*p,-8*p,3*p,6*p);
+  sCtx.fillStyle='#8a7050'; sCtx.fillRect(-p,-2*p,3*p,4*p);
+  sCtx.fillStyle='#1a1008'; sCtx.fillRect(-6*p,3*p,12*p,2*p);
+  sCtx.fillStyle='#c8a060'; sCtx.fillRect(-p,3*p,2*p,2*p);
+  // Neck + head
+  sCtx.fillStyle='#c8a070'; sCtx.fillRect(-2*p,-9*p,4*p,2*p); sCtx.fillRect(-5*p,-18*p,10*p,9*p);
+  sCtx.fillStyle='#231a0a'; sCtx.fillRect(-5*p,-20*p,10*p,4*p); sCtx.fillRect(-6*p,-18*p,2*p,6*p); sCtx.fillRect(4*p,-18*p,3*p,5*p);
+  // Eyes (if facing front)
+  if(sp.facing!=='up'){
+    sCtx.fillStyle='#ecddc0'; sCtx.fillRect(-4*p,-16*p,3*p,3*p); sCtx.fillRect(p,-16*p,3*p,3*p);
+    sCtx.fillStyle='#1a0a04'; sCtx.fillRect(-3*p,-15*p,2*p,2*p); sCtx.fillRect(p,-15*p,2*p,2*p);
+    sCtx.fillStyle='rgba(255,255,255,0.85)'; sCtx.fillRect(-3*p,-16*p,p,p); sCtx.fillRect(p,-16*p,p,p);
+    sCtx.fillStyle='#b09070'; sCtx.fillRect(-4*p,-13*p,3*p,p); sCtx.fillRect(p,-13*p,3*p,p);
+    sCtx.fillStyle='#6a5038'; sCtx.fillRect(-3*p,-12*p,2*p,p); sCtx.fillRect(0,-12*p,2*p,p); sCtx.fillRect(-2*p,-11*p,5*p,p);
+  } else {
+    sCtx.fillStyle='#231a0a'; sCtx.fillRect(-3*p,-15*p,6*p,2*p);
+  }
+  sCtx.restore();
+}
+
+/* ── HINT ── */
+function sDrawHint(){
+  if(DialogSystem.isOpen()||sGameState!=='playing') return;
+  const off={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+  const [ox,oy]=off[sp.facing];
+  const cx=Math.floor(sp.tx)+ox, cy=Math.floor(sp.ty)+oy;
+  let nearObj=null;
+  for(const obj of SOBJECTS){
+    if(obj._skip) continue;
+    if(cx>=obj.tx&&cx<obj.tx+obj.w&&cy>=obj.ty&&cy<obj.ty+obj.h){ nearObj=obj; break; }
+  }
+  const nearDoor=SMAP[cy]?.[cx]===_D;
+  if(!nearObj&&!nearDoor) return;
+  const label= nearDoor&&cy<=3&&cx>=2&&cx<=4 ? 'ENTER HOME' : nearDoor ? 'ENTER ?' : 'E';
+  const tx2=nearObj ? (nearObj.tx+nearObj.w/2)*S : cx*S+S/2;
+  const ty2=nearObj ? nearObj.ty*S-SCALE*4 : cy*S-SCALE*4;
+  const bw=S*2.2;
+  const pulse=0.82+0.18*Math.sin(Date.now()/250);
+  sCtx.save(); sCtx.globalAlpha=pulse;
+  sCtx.fillStyle='rgba(0,0,0,0.35)';
+  rRect(sCtx,tx2-bw/2+SCALE,ty2-S*0.35+SCALE,bw,S*0.56,SCALE*2); sCtx.fill();
+  sCtx.fillStyle=C.hintBg; sCtx.strokeStyle=C.hintTx; sCtx.lineWidth=SCALE;
+  rRect(sCtx,tx2-bw/2,ty2-S*0.35,bw,S*0.56,SCALE*2); sCtx.fill(); sCtx.stroke();
+  sCtx.fillStyle=C.hintTx; sCtx.font=`bold ${SCALE*4}px monospace`;
+  sCtx.textAlign='center'; sCtx.textBaseline='middle';
+  sCtx.fillText(label,tx2,ty2-S*0.08);
+  sCtx.restore();
+}
+
+function drawReturnArrow(){
+  const t=Date.now();
+  sCtx.save();
+  sCtx.globalAlpha=0.55+0.4*Math.sin(t/500);
+  sCtx.fillStyle='#ffe600';
+  sCtx.font=`bold ${SCALE*4}px monospace`;
+  sCtx.textAlign='center'; sCtx.textBaseline='middle';
+  sCtx.fillText('▲ HOME', 3.5*S, 4.2*S);
+  sCtx.globalAlpha=1;
+  sCtx.restore();
+}
+
+function rRect(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
+  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+
+/* ── UI ── */
+function sDrawUI(){
+  suiCtx.clearRect(0,0,suiCanvas.width,suiCanvas.height);
+  drawStreetHUD();
+  if(sinventoryOpen) drawInventory();
+  if(sGameState==='paused') drawPause();
+}
+
+function drawStreetHUD(){
+  const W=suiCanvas.width, pad=14;
+  suiCtx.fillStyle='rgba(10,6,0,0.92)'; suiCtx.fillRect(0,0,W,50);
+  suiCtx.fillStyle='rgba(255,230,0,0.8)'; suiCtx.fillRect(0,48,W,2);
+  suiCtx.font='bold 14px "IBM Plex Mono",monospace';
+  suiCtx.fillStyle='#ffe600'; suiCtx.textBaseline='middle'; suiCtx.textAlign='left';
+  suiCtx.fillText(`💰 €${sp.money}`,pad,25);
+  suiCtx.fillText(`☠ DIGNITY: ${sp.dignity||0}%`,pad+160,25);
+  suiCtx.fillText('📍 THE STREET',pad+360,25);
+  if(tripActive){
+    const trem=Math.ceil(TRIP_DURATION-tripTimer);
+    suiCtx.fillStyle=`hsl(${Date.now()/20%360},80%,65%)`;
+    suiCtx.fillText(`👁 SEEING THINGS (${trem}s)`,pad+540,25);
+  }
+  suiCtx.textAlign='right'; suiCtx.fillStyle='rgba(255,255,255,0.3)';
+  suiCtx.font='10px "IBM Plex Mono",monospace';
+  suiCtx.fillText('[E] Interact  [Q] Inventory  [F] Use item  [ESC] Pause',W-pad,25);
+}
+
+function drawInventory(){
+  const W=suiCanvas.width, H=suiCanvas.height;
+  const bw=Math.min(500,W-40), bh=360, bx=(W-bw)/2, by=(H-bh)/2;
+  suiCtx.save();
+  suiCtx.fillStyle='rgba(0,0,0,0.78)'; suiCtx.fillRect(0,0,W,H);
+  suiCtx.fillStyle='#0e0800'; suiCtx.strokeStyle='#ffe600'; suiCtx.lineWidth=3;
+  suiCtx.beginPath(); suiCtx.roundRect(bx,by,bw,bh,10); suiCtx.fill(); suiCtx.stroke();
+  suiCtx.fillStyle='#ffe600'; suiCtx.fillRect(bx+3,by+3,bw-6,3);
+  suiCtx.font='bold 18px "Permanent Marker",cursive'; suiCtx.textAlign='center'; suiCtx.textBaseline='top';
+  suiCtx.fillText('📦 POCKETS',W/2,by+16);
+  suiCtx.strokeStyle='rgba(255,230,0,0.2)'; suiCtx.lineWidth=1;
+  suiCtx.beginPath(); suiCtx.moveTo(bx+20,by+52); suiCtx.lineTo(bx+bw-20,by+52); suiCtx.stroke();
+  if(sp.inventory.length===0){
+    suiCtx.fillStyle='rgba(255,255,255,0.3)'; suiCtx.font='14px "IBM Plex Mono",monospace';
+    suiCtx.textAlign='center'; suiCtx.textBaseline='middle';
+    suiCtx.fillText('Nothing. Truly nothing.',W/2,by+bh/2);
+  } else {
+    sp.inventory.forEach((item,i)=>{
+      const iy=by+64+i*80;
+      suiCtx.fillStyle='rgba(255,230,0,0.07)'; suiCtx.strokeStyle='rgba(255,230,0,0.22)'; suiCtx.lineWidth=1;
+      suiCtx.beginPath(); suiCtx.roundRect(bx+20,iy,bw-40,72,6); suiCtx.fill(); suiCtx.stroke();
+      suiCtx.fillStyle='#ffe600'; suiCtx.font='bold 14px "Permanent Marker",cursive';
+      suiCtx.textAlign='left'; suiCtx.textBaseline='top';
+      suiCtx.fillText(item.name,bx+36,iy+12);
+      suiCtx.fillStyle='#c8b090'; suiCtx.font='11px "IBM Plex Mono",monospace';
+      suiCtx.fillText(item.desc,bx+36,iy+36);
+      if(item.consumable){ suiCtx.fillStyle='#40cc60'; suiCtx.font='bold 10px monospace'; suiCtx.fillText('[F] to use',bx+36,iy+54); }
+    });
+  }
+  suiCtx.fillStyle='rgba(255,230,0,0.4)'; suiCtx.font='11px "IBM Plex Mono",monospace';
+  suiCtx.textAlign='right'; suiCtx.textBaseline='bottom';
+  suiCtx.fillText('[Q] or [E] Close',bx+bw-16,by+bh-12);
+  suiCtx.restore();
+}
+
+function drawPause(){
+  const W=suiCanvas.width, H=suiCanvas.height;
+  suiCtx.save(); suiCtx.fillStyle='rgba(0,0,0,0.68)'; suiCtx.fillRect(0,0,W,H);
+  suiCtx.fillStyle='#ffe600'; suiCtx.font='bold 48px "Bebas Neue",sans-serif';
+  suiCtx.textAlign='center'; suiCtx.textBaseline='middle'; suiCtx.fillText('PAUSED',W/2,H/2-24);
+  suiCtx.fillStyle='rgba(255,255,255,0.4)'; suiCtx.font='15px "IBM Plex Mono",monospace';
+  suiCtx.fillText('( ESC to resume )',W/2,H/2+20); suiCtx.restore();
+}
+
+/* ── TRIP EFFECT ── */
+function drawTripEffect(){
+  const t=Date.now()/1000;
+  const prog=tripTimer/TRIP_DURATION;
+  const intensity=prog<0.15?(prog/0.15):prog>0.8?((1-prog)/0.2):1;
+  sCtx.save();
+  sCtx.globalCompositeOperation='screen';
+  const offX=Math.sin(t*2.1)*SCALE*4*intensity, offY=Math.cos(t*1.7)*SCALE*2*intensity;
+  sCtx.globalAlpha=0.18*intensity;
+  sCtx.fillStyle='#ff0040'; sCtx.fillRect(offX,offY,sCanvas.width,sCanvas.height);
+  sCtx.fillStyle='#0040ff'; sCtx.fillRect(-offX,-offY,sCanvas.width,sCanvas.height);
+  sCtx.globalCompositeOperation='source-over'; sCtx.globalAlpha=1;
+  for(let y=0;y<sCanvas.height;y+=SCALE*4){
+    const shift=Math.sin(t*3+y*0.04)*SCALE*3*intensity;
+    sCtx.globalAlpha=0.04*intensity; sCtx.fillStyle=`hsl(${(y*2+t*60)%360},80%,60%)`;
+    sCtx.fillRect(shift,y,sCanvas.width,SCALE*2);
+  }
+  sCtx.globalAlpha=1;
+  if(tripMsgVisible){
+    const msgAlpha=Math.min(1,(1-Math.abs(tripMsgTimer-1.1)/1.1))*intensity;
+    sCtx.globalAlpha=msgAlpha; sCtx.font=`bold ${SCALE*5}px "Permanent Marker",cursive`;
+    sCtx.textAlign='center'; sCtx.textBaseline='middle'; sCtx.fillStyle='rgba(0,255,80,0.9)';
+    sCtx.fillText(TRIP_MESSAGES[tripMsgIdx],sCanvas.width/2,(sp.ty+0.5)*S+Math.sin(t*2)*SCALE*8);
+    sCtx.globalAlpha=1;
+  }
+  sCtx.restore();
+}
+</script>
+</body>
+</html>
