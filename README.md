@@ -7,14 +7,17 @@ NATHANLUCAGAMERPG-1/
 └── src/
     ├── app/
     │   └── Index.html
-    │   └── Street.html
+    │   └── Street2.html
+    │   └── Street3.html
     │   └── Game.html
     ├── scripts/
     │   ├── Cinematic.js
+    │   ├── Dialogsystem.js
     │   ├── Main.js
     │   └── World.js
     └── styles/
         ├── Cinematic.css
+        ├── Dialogsystem.js
         └── Style.css
 ```
 
