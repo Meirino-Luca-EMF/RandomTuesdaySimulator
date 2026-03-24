@@ -1,10 +1,9 @@
 # THINGS TO DO ASAP
 
-- [ ] The person talking should be on the left side of the dialogue
 - [ ] Money should not be kept between the deaths and the games, if i start again i lose everything no save system, all in one go ykyk
 - [ ] Fix the street hitboxs like the bottom building (You can step on it)
 - [ ] Add dirtiness to the street and details, redo the look of the bottom building  and top building cuz it looks ahhh tbh, stop putting doors in the walls cuz that shit ain't logical at all. Make the car a litttle big bigger it looks like a toy. The fountain looks like a sink remake it, remake the street lights cuz these ain't big enough
-- [ ] The npc are walking on the walls in the street...
+- [ ] The npc are walking on the walls in the street... and we can do it too, wich isn't normal
 - [ ] Add a suicide fonction in escape menu to exit the game (Gore asf, bringing you back to the menu after a lil cinematic)
 - [ ] Fix npc hitboxs in the street
 - [ ] Text should be appearing only once when changing zones (if you enter and leave the house multiple times it becomes annoying)
