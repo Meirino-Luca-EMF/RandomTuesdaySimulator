@@ -1,20 +1,21 @@
 /* =====================================================
    DIALOG SYSTEM JS — Undertale-style
+   FIX: Speaker (NPC) is now on the LEFT, Player on the RIGHT
    Portraits drawn on canvas, typewriter text,
    choice menus, speaker-aware layout.
 
    Usage:
      DialogSystem.show({
-       speaker: 'DEALER',           // right-side NPC name
-       speakerPortrait: 'dealer',   // key into PORTRAITS
-       playerPortrait: 'player',    // player expression
+       speaker: 'DEALER',
+       speakerPortrait: 'dealer',
+       playerPortrait: 'normal',
        lines: [
          { text: "Psst. Hey. YOU.", expr: 'smirk' },
          { text: "Got something special.", expr: 'normal' },
        ],
-       choices: [                   // optional — shown after last line
+       choices: [
          { label: "Buy Strange Water (€3)", value: 'buy' },
-         { label: "No thanks, I'm already broke.", value: 'decline' },
+         { label: "No thanks.", value: 'decline' },
        ],
        onChoice: (value) => { ... },
        onClose:  () => { ... },
@@ -24,7 +25,6 @@
    const DialogSystem = (() => {
     'use strict';
   
-    /* ── DOM ── */
     let overlay, box, leftPortraitEl, rightPortraitEl,
         leftCanvas, rightCanvas, leftCtx, rightCtx,
         leftNametag, rightNametag,
@@ -41,9 +41,8 @@
   
     const PORTRAIT_W = 168;
     const PORTRAIT_H = 168;
-    const P = 3; // pixel scale
+    const P = 3;
   
-    /* ── BUILD DOM ── */
     function build() {
       if (built) return;
       built = true;
@@ -53,7 +52,7 @@
       overlay.innerHTML = `
         <div class="dlg-box">
           <div class="dlg-portrait-left" id="dlg-pl">
-            <div class="dlg-nametag" id="dlg-ln">YOU</div>
+            <div class="dlg-nametag" id="dlg-ln">???</div>
             <canvas id="dlg-lc" width="${PORTRAIT_W}" height="${PORTRAIT_H}"></canvas>
           </div>
           <div class="dlg-middle">
@@ -64,7 +63,7 @@
             <div class="dlg-arrow" id="dlg-arrow">▼</div>
           </div>
           <div class="dlg-portrait-right" id="dlg-pr">
-            <div class="dlg-nametag" id="dlg-rn">???</div>
+            <div class="dlg-nametag" id="dlg-rn">YOU</div>
             <canvas id="dlg-rc" width="${PORTRAIT_W}" height="${PORTRAIT_H}"></canvas>
           </div>
         </div>`;
@@ -88,7 +87,6 @@
       overlay.addEventListener('click', onClick);
     }
   
-    /* ── SHOW ── */
     function show(cfg) {
       build();
       config = cfg;
@@ -96,18 +94,16 @@
       choiceIdx = 0;
       mode = 'idle';
   
-      // Nametags
-      leftNametag.textContent = 'YOU';
-      rightNametag.textContent = cfg.speaker || '???';
+      // LEFT = NPC/Speaker, RIGHT = Player
+      leftNametag.textContent  = cfg.speaker || '???';
+      rightNametag.textContent = 'YOU';
   
-      // Draw portraits
-      drawPortrait(leftCtx,  'player',  cfg.playerPortrait || 'normal');
-      drawPortrait(rightCtx, cfg.speakerPortrait || 'unknown', 'normal');
+      // Draw portraits: speaker on LEFT, player on RIGHT
+      drawPortrait(leftCtx,  cfg.speakerPortrait || 'unknown', 'normal');
+      drawPortrait(rightCtx, 'player', cfg.playerPortrait || 'normal');
   
-      // Build dots
       dotsEl.innerHTML = (cfg.lines || []).map(() => `<div class="dlg-dot"></div>`).join('');
   
-      // Hide choices
       choicesEl.classList.remove('open');
       choicesEl.innerHTML = '';
       arrowEl.style.display = 'block';
@@ -116,7 +112,6 @@
       showLine(0);
     }
   
-    /* ── LINE ── */
     function showLine(idx) {
       if (!config || !config.lines || idx >= config.lines.length) {
         if (config?.choices?.length) {
@@ -130,24 +125,26 @@
       const line = config.lines[idx];
       currentText = typeof line === 'string' ? line : line.text;
       const expr   = typeof line === 'object' ? line.expr : 'normal';
-      const speaker = typeof line === 'object' ? (line.speaker || 'right') : 'right';
+      const speaker = typeof line === 'object' ? (line.speaker || 'left') : 'left';
   
-      // Update portrait expression
-      if (speaker === 'left' || speaker === 'player') {
-        drawPortrait(leftCtx, 'player', expr);
-        speakerBarFill.style.width = '0%';
+      // speaker='left' or 'right' or 'player'
+      // 'left' = NPC is talking (highlight left portrait)
+      // 'right' or 'player' = player is talking (highlight right portrait)
+      if (speaker === 'right' || speaker === 'player') {
+        // Player is talking — update right portrait
+        drawPortrait(rightCtx, 'player', expr);
+        speakerBarFill.style.width = '100%'; // bar goes right
       } else {
-        drawPortrait(rightCtx, config.speakerPortrait || 'unknown', expr);
-        speakerBarFill.style.width = '100%';
+        // NPC/narrator is talking — update left portrait
+        drawPortrait(leftCtx, config.speakerPortrait || 'unknown', expr);
+        speakerBarFill.style.width = '0%'; // bar goes left
       }
   
-      // Dots
       const dots = dotsEl.querySelectorAll('.dlg-dot');
       dots.forEach((d, i) => {
         d.className = 'dlg-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
       });
   
-      // Typewriter
       charIdx = 0;
       textEl.textContent = '';
       arrowEl.style.display = 'none';
@@ -156,7 +153,7 @@
       typeNext();
     }
   
-    const CHAR_SPEED = 28; // ms per char
+    const CHAR_SPEED = 28;
     function typeNext() {
       if (charIdx <= currentText.length) {
         textEl.textContent = currentText.slice(0, charIdx);
@@ -176,7 +173,6 @@
       arrowEl.style.display = 'block';
     }
   
-    /* ── CHOICES ── */
     function openChoices() {
       mode = 'choices';
       arrowEl.style.display = 'none';
@@ -201,22 +197,12 @@
       close();
     }
   
-    /* ── ADVANCE ── */
     function advance() {
-      if (mode === 'typing') {
-        skipTyping();
-        return;
-      }
-      if (mode === 'waiting') {
-        showLine(lineIdx + 1);
-        return;
-      }
-      if (mode === 'choices') {
-        confirmChoice();
-      }
+      if (mode === 'typing') { skipTyping(); return; }
+      if (mode === 'waiting') { showLine(lineIdx + 1); return; }
+      if (mode === 'choices') { confirmChoice(); }
     }
   
-    /* ── CLOSE ── */
     function close() {
       clearTimeout(typeTimer);
       overlay.classList.remove('open');
@@ -226,7 +212,6 @@
       if (cb) cb();
     }
   
-    /* ── INPUT ── */
     function onKey(e) {
       if (!overlay.classList.contains('open')) return;
       if (e.key.toLowerCase() === 'e' || e.key === ' ' || e.key === 'Enter') {
@@ -252,15 +237,11 @@
   
     /* ══════════════════════════════════════════
        PORTRAIT DRAWING ENGINE
-       Each portrait key has a draw function.
     ══════════════════════════════════════════ */
     function drawPortrait(ctx, key, expr) {
       ctx.clearRect(0, 0, PORTRAIT_W, PORTRAIT_H);
       const fn = PORTRAITS[key];
-      if (!fn) {
-        drawUnknown(ctx, expr);
-        return;
-      }
+      if (!fn) { drawUnknown(ctx, expr); return; }
       fn(ctx, expr);
     }
   
@@ -273,22 +254,18 @@
       ctx.save();
       ctx.translate(cx, cy);
   
-      // BG tint
       ctx.fillStyle = 'rgba(30,20,5,0.7)';
       ctx.fillRect(-PORTRAIT_W/2, -PORTRAIT_H/2, PORTRAIT_W, PORTRAIT_H);
   
-      // Shoulders / body
       ctx.fillStyle = '#506030';
       ctx.fillRect(-12*p, 2*p, 24*p, 18*p);
       ctx.fillStyle = '#3a4a1a';
       ctx.fillRect(-12*p, 2*p, 7*p, 10*p);
       ctx.fillRect(5*p, 2*p, 7*p, 10*p);
   
-      // Neck
       ctx.fillStyle = '#c8a070';
       ctx.fillRect(-2*p, -2*p, 4*p, 4*p);
   
-      // Head
       ctx.fillStyle = '#c8a070';
       ctx.fillRect(-7*p, -18*p, 14*p, 16*p);
       ctx.fillStyle = 'rgba(255,200,120,0.18)';
@@ -296,7 +273,6 @@
       ctx.fillStyle = 'rgba(0,0,0,0.1)';
       ctx.fillRect(-7*p, -4*p, 14*p, 2*p);
   
-      // Hair
       ctx.fillStyle = '#231a0a';
       ctx.fillRect(-7*p, -22*p, 14*p, 7*p);
       ctx.fillRect(-9*p, -18*p, 3*p, 8*p);
@@ -304,7 +280,6 @@
       ctx.fillStyle = '#3a2a10';
       ctx.fillRect(-7*p, -18*p, 5*p, 3*p);
   
-      // Eyes
       const eyeY = -12*p;
       if (expr === 'surprised' || expr === 'scared') {
         ctx.fillStyle = '#1a0a04';
@@ -317,7 +292,6 @@
         ctx.fillStyle = '#1a0a04';
         ctx.fillRect(-5*p, eyeY, 4*p, 3*p);
         ctx.fillRect(1*p, eyeY, 4*p, 3*p);
-        // eyebrows angled
         ctx.fillStyle = '#231a0a';
         ctx.fillRect(-5*p, eyeY-3*p, 4*p, 2*p);
         ctx.fillRect(1*p, eyeY-2*p, 4*p, 2*p);
@@ -328,8 +302,14 @@
         ctx.fillStyle = 'rgba(255,200,120,0.4)';
         ctx.fillRect(-5*p, eyeY+2*p, 4*p, p);
         ctx.fillRect(1*p, eyeY+2*p, 4*p, p);
+      } else if (expr === 'sad') {
+        ctx.fillStyle = '#1a0a04';
+        ctx.fillRect(-5*p, eyeY, 4*p, 4*p);
+        ctx.fillRect(1*p, eyeY, 4*p, 4*p);
+        ctx.fillStyle = '#231a0a';
+        ctx.fillRect(-5*p, eyeY-2*p, 2*p, 2*p);
+        ctx.fillRect(3*p, eyeY-3*p, 2*p, 2*p);
       } else {
-        // normal
         ctx.fillStyle = '#ecddc0';
         ctx.fillRect(-5*p, eyeY, 4*p, 4*p);
         ctx.fillRect(1*p, eyeY, 4*p, 4*p);
@@ -341,7 +321,6 @@
         ctx.fillRect(1*p, eyeY+p, p, p);
       }
   
-      // Mouth
       const mouthY = -6*p;
       if (expr === 'happy') {
         ctx.fillStyle = '#6a4820';
@@ -356,6 +335,11 @@
       } else if (expr === 'angry') {
         ctx.fillStyle = '#6a4820';
         ctx.fillRect(-4*p, mouthY+p, 8*p, p);
+        ctx.fillRect(-4*p, mouthY, 2*p, p);
+        ctx.fillRect(2*p, mouthY, 2*p, p);
+      } else if (expr === 'sad') {
+        ctx.fillStyle = '#6a4820';
+        ctx.fillRect(-3*p, mouthY+p, 6*p, p);
         ctx.fillRect(-4*p, mouthY, 2*p, p);
         ctx.fillRect(2*p, mouthY, 2*p, p);
       } else {
@@ -376,28 +360,21 @@
       ctx.save();
       ctx.translate(cx, cy);
   
-      // Eerie BG
       const bgGrad = ctx.createRadialGradient(0, -10*p, 0, 0, -10*p, 35*p);
       bgGrad.addColorStop(0, 'rgba(30,5,50,0.9)');
       bgGrad.addColorStop(1, 'rgba(5,0,10,0.98)');
       ctx.fillStyle = bgGrad;
       ctx.fillRect(-PORTRAIT_W/2, -PORTRAIT_H/2, PORTRAIT_W, PORTRAIT_H);
   
-      // Coat
       ctx.fillStyle = '#1e0e2e';
       ctx.fillRect(-9*p, 0, 18*p, 22*p);
       ctx.fillStyle = '#2a1240';
       ctx.fillRect(-9*p, 0, 5*p, 12*p);
       ctx.fillRect(4*p, 0, 5*p, 12*p);
-      // Collar
       ctx.fillStyle = '#140828';
       ctx.fillRect(-8*p, 0, 5*p, 7*p);
       ctx.fillRect(3*p, 0, 5*p, 7*p);
-      // Lapel shine
-      ctx.fillStyle = 'rgba(255,200,255,0.06)';
-      ctx.fillRect(-9*p, 0, 2*p, 18*p);
   
-      // Arms
       ctx.fillStyle = '#1e0e2e';
       ctx.fillRect(-13*p, -4*p, 5*p, 14*p);
       ctx.fillRect(8*p, -4*p, 5*p, 14*p);
@@ -405,7 +382,6 @@
       ctx.fillRect(-13*p, 9*p, 5*p, 4*p);
       ctx.fillRect(8*p, 9*p, 5*p, 4*p);
   
-      // Glowing bottle
       ctx.save(); ctx.translate(-16*p, 4*p);
       const glowAmt = 0.4 + 0.3*Math.sin(Date.now()/300);
       ctx.globalAlpha = glowAmt * 0.5;
@@ -415,36 +391,23 @@
       ctx.fillStyle = '#1a6028'; ctx.fillRect(-p*2, -p*6, p*4, p*10);
       ctx.fillStyle = '#2a8838'; ctx.fillRect(-p*2, -p*6, p*2, p*10);
       ctx.fillStyle = '#40cc60'; ctx.fillRect(-p*2, -p*6, p*4, p*3);
-      ctx.fillStyle = 'rgba(100,255,120,0.6)'; ctx.fillRect(-p*2, -p*5, p*2, p*3);
       ctx.fillStyle = '#888'; ctx.fillRect(-p, -p*8, p*2, p*2);
       ctx.restore();
   
-      // Neck
       ctx.fillStyle = '#c0a878';
       ctx.fillRect(-3*p, -3*p, 6*p, 4*p);
   
-      // Head
       ctx.fillStyle = '#b89868';
       ctx.fillRect(-7*p, -22*p, 14*p, 19*p);
-      ctx.fillStyle = 'rgba(255,200,120,0.18)';
-      ctx.fillRect(-7*p, -22*p, 14*p, 5*p);
-      ctx.fillStyle = 'rgba(0,0,0,0.1)';
-      ctx.fillRect(-7*p, -4*p, 14*p, 2*p);
   
-      // Hat brim + crown
       ctx.fillStyle = '#0e0818';
       ctx.fillRect(-10*p, -26*p, 20*p, 4*p);
       ctx.fillRect(-6*p, -36*p, 12*p, 11*p);
       ctx.fillStyle = '#2a1848';
       ctx.fillRect(-6*p, -36*p, 6*p, 11*p);
-      ctx.fillStyle = 'rgba(255,200,80,0.22)';
-      ctx.fillRect(-6*p, -26*p, 12*p, p);
-  
-      // Shadow under hat
       ctx.fillStyle = 'rgba(0,0,0,0.4)';
       ctx.fillRect(-7*p, -24*p, 14*p, 5*p);
   
-      // Eyes
       const eyeY = -16*p;
       if (expr === 'angry' || expr === 'threatening') {
         ctx.fillStyle = '#0a0418';
@@ -453,7 +416,6 @@
         ctx.fillStyle = 'rgba(255,40,0,0.9)';
         ctx.fillRect(-5*p, eyeY+p, 3*p, 2*p);
         ctx.fillRect(1*p, eyeY+p, 3*p, 2*p);
-        // Angry brows
         ctx.fillStyle = '#0e0818';
         ctx.fillRect(-6*p, eyeY-3*p, 6*p, 2*p);
         ctx.fillRect(0, eyeY-2*p, 6*p, 2*p);
@@ -464,41 +426,25 @@
         ctx.fillStyle = 'rgba(80,255,120,0.9)';
         ctx.fillRect(-5*p, eyeY+2*p, 3*p, 2*p);
         ctx.fillRect(1*p, eyeY+p, 3*p, 2*p);
-        ctx.fillStyle = 'rgba(200,255,200,0.7)';
-        ctx.fillRect(-5*p, eyeY+2*p, p, p);
-        ctx.fillRect(1*p, eyeY+p, p, p);
       } else {
-        // normal glowing eyes
         ctx.fillStyle = '#0a0418';
         ctx.fillRect(-6*p, eyeY, 5*p, 4*p);
         ctx.fillRect(1*p, eyeY, 5*p, 4*p);
         ctx.fillStyle = 'rgba(80,255,120,0.9)';
         ctx.fillRect(-5*p, eyeY+p, 3*p, 2*p);
         ctx.fillRect(2*p, eyeY+p, 3*p, 2*p);
-        ctx.fillStyle = 'rgba(200,255,200,0.7)';
-        ctx.fillRect(-5*p, eyeY+p, p, p);
-        ctx.fillRect(2*p, eyeY+p, p, p);
       }
   
-      // Mouth
       const mY = -9*p;
       if (expr === 'smirk' || expr === 'sneaky') {
         ctx.fillStyle = '#6a4820';
         ctx.fillRect(-4*p, mY, 8*p, p);
         ctx.fillRect(2*p, mY+p, 3*p, p);
-      } else if (expr === 'angry' || expr === 'threatening') {
-        ctx.fillStyle = '#3a1208';
-        ctx.fillRect(-5*p, mY, 10*p, p*2);
-        ctx.fillStyle = '#f0e0c0';
-        ctx.fillRect(-4*p, mY, 2*p, 2*p);
-        ctx.fillRect(2*p, mY, 2*p, 2*p);
       } else {
         ctx.fillStyle = '#6a4820';
         ctx.fillRect(-4*p, mY, 8*p, p);
-        ctx.fillRect(2*p, mY+p, 2*p, p);
       }
   
-      // Floating ? above head
       const qa = 0.5 + 0.5*Math.sin(Date.now()/500);
       ctx.globalAlpha = qa;
       ctx.fillStyle = '#ffe600';
@@ -506,7 +452,6 @@
       ctx.textAlign = 'center';
       ctx.fillText('?', 0, -40*p);
       ctx.globalAlpha = 1;
-  
       ctx.restore();
     };
   
@@ -515,81 +460,36 @@
       const cx = PORTRAIT_W/2, cy = PORTRAIT_H/2 + 10;
       const p = P;
       ctx.save(); ctx.translate(cx, cy);
-  
       ctx.fillStyle = 'rgba(20,10,30,0.8)';
       ctx.fillRect(-PORTRAIT_W/2, -PORTRAIT_H/2, PORTRAIT_W, PORTRAIT_H);
-  
-      // Body — floral cardigan
       ctx.fillStyle = '#7a4858';
       ctx.fillRect(-10*p, 0, 20*p, 20*p);
-      // Floral pattern dots
       const dots = [[-5,-5],[2,-3],[-2,5],[6,8],[-7,10],[3,15]];
       for (const [dx,dy] of dots) {
-        ctx.fillStyle = '#f08080';
-        ctx.fillRect(dx*p, dy*p, p*2, p*2);
-        ctx.fillStyle = '#f0c0c0';
-        ctx.fillRect((dx+1)*p, dy*p, p, p);
+        ctx.fillStyle = '#f08080'; ctx.fillRect(dx*p, dy*p, p*2, p*2);
+        ctx.fillStyle = '#f0c0c0'; ctx.fillRect((dx+1)*p, dy*p, p, p);
       }
-  
-      // Neck + head — wide
-      ctx.fillStyle = '#c8a070';
-      ctx.fillRect(-3*p, -3*p, 6*p, 4*p);
-      ctx.fillStyle = '#c8a070';
-      ctx.fillRect(-9*p, -22*p, 18*p, 20*p);
-  
-      // White fluffy hair
-      ctx.fillStyle = '#e8e8e0';
-      ctx.fillRect(-10*p, -28*p, 20*p, 10*p);
-      ctx.fillRect(-11*p, -24*p, 4*p, 8*p);
-      ctx.fillRect(7*p, -24*p, 4*p, 8*p);
-      ctx.fillStyle = '#d0d0c8';
-      ctx.fillRect(-10*p, -28*p, 10*p, 5*p);
-      // Curls
-      ctx.fillStyle = '#e8e8e0';
-      ctx.fillRect(-11*p, -26*p, p*3, p*4);
-      ctx.fillRect(8*p, -24*p, p*3, p*3);
-  
-      // Glasses
-      ctx.strokeStyle = '#604020';
-      ctx.lineWidth = p;
-      ctx.strokeRect(-8*p, -14*p, 6*p, 4*p);
-      ctx.strokeRect(2*p, -14*p, 6*p, 4*p);
+      ctx.fillStyle = '#c8a070'; ctx.fillRect(-3*p, -3*p, 6*p, 4*p);
+      ctx.fillStyle = '#c8a070'; ctx.fillRect(-9*p, -22*p, 18*p, 20*p);
+      ctx.fillStyle = '#e8e8e0'; ctx.fillRect(-10*p, -28*p, 20*p, 10*p);
+      ctx.fillRect(-11*p, -24*p, 4*p, 8*p); ctx.fillRect(7*p, -24*p, 4*p, 8*p);
+      ctx.fillStyle = '#d0d0c8'; ctx.fillRect(-10*p, -28*p, 10*p, 5*p);
+      ctx.strokeStyle = '#604020'; ctx.lineWidth = p;
+      ctx.strokeRect(-8*p, -14*p, 6*p, 4*p); ctx.strokeRect(2*p, -14*p, 6*p, 4*p);
       ctx.beginPath(); ctx.moveTo(-2*p, -12*p); ctx.lineTo(2*p, -12*p); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(-8*p, -12*p); ctx.lineTo(-11*p, -11*p); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(8*p, -12*p); ctx.lineTo(11*p, -11*p); ctx.stroke();
-  
-      // Eyes through glasses
       if (expr === 'angry') {
         ctx.fillStyle = '#3a1a08';
-        ctx.fillRect(-7*p, -13*p, 4*p, 2*p);
-        ctx.fillRect(3*p, -13*p, 4*p, 2*p);
-        // Angry brows
+        ctx.fillRect(-7*p, -13*p, 4*p, 2*p); ctx.fillRect(3*p, -13*p, 4*p, 2*p);
         ctx.fillStyle = '#604020';
-        ctx.fillRect(-8*p, -16*p, 4*p, p);
-        ctx.fillRect(3*p, -17*p, 4*p, p);
+        ctx.fillRect(-8*p, -16*p, 4*p, p); ctx.fillRect(3*p, -17*p, 4*p, p);
       } else if (expr === 'suspicious') {
         ctx.fillStyle = '#3a1a08';
-        ctx.fillRect(-7*p, -13*p, 4*p, 2*p);
-        ctx.fillRect(3*p, -12*p, 4*p, 3*p);
+        ctx.fillRect(-7*p, -13*p, 4*p, 2*p); ctx.fillRect(3*p, -12*p, 4*p, 3*p);
       } else {
         ctx.fillStyle = '#3a1a08';
-        ctx.fillRect(-7*p, -13*p, 4*p, 3*p);
-        ctx.fillRect(3*p, -13*p, 4*p, 3*p);
-        ctx.fillStyle = '#8a5038';
-        ctx.fillRect(-6*p, -12*p, 2*p, 2*p);
-        ctx.fillRect(4*p, -12*p, 2*p, 2*p);
+        ctx.fillRect(-7*p, -13*p, 4*p, 3*p); ctx.fillRect(3*p, -13*p, 4*p, 3*p);
       }
-  
-      // Mouth + wrinkles
-      ctx.fillStyle = '#c09060';
-      ctx.fillRect(-4*p, -7*p, 8*p, p);
-      // Wrinkles
-      ctx.fillStyle = 'rgba(0,0,0,0.12)';
-      ctx.fillRect(-8*p, -10*p, 3*p, p);
-      ctx.fillRect(5*p, -10*p, 3*p, p);
-      ctx.fillRect(-6*p, -8*p, 2*p, p);
-      ctx.fillRect(4*p, -8*p, 2*p, p);
-  
+      ctx.fillStyle = '#c09060'; ctx.fillRect(-4*p, -7*p, 8*p, p);
       ctx.restore();
     };
   
@@ -598,100 +498,31 @@
       const cx = PORTRAIT_W/2, cy = PORTRAIT_H/2 + 20;
       const p = P;
       ctx.save(); ctx.translate(cx, cy);
-  
       ctx.fillStyle = 'rgba(5,10,25,0.9)';
       ctx.fillRect(-PORTRAIT_W/2, -PORTRAIT_H/2, PORTRAIT_W, PORTRAIT_H);
-  
-      // Body — dark blue uniform
-      ctx.fillStyle = '#1a2848';
-      ctx.fillRect(-11*p, 0, 22*p, 20*p);
+      ctx.fillStyle = '#1a2848'; ctx.fillRect(-11*p, 0, 22*p, 20*p);
       ctx.fillStyle = '#141e38';
-      ctx.fillRect(-11*p, 0, 5*p, 12*p);
-      ctx.fillRect(6*p, 0, 5*p, 12*p);
-      // Badge
-      ctx.fillStyle = '#c8a030';
-      ctx.fillRect(-2*p, 2*p, 4*p, 5*p);
-      ctx.fillStyle = '#a07818';
-      ctx.fillRect(-p, 3*p, 2*p, 3*p);
-      // Belt
-      ctx.fillStyle = '#0a0a18';
-      ctx.fillRect(-11*p, 12*p, 22*p, 3*p);
-      ctx.fillStyle = '#c8a030';
-      ctx.fillRect(-2*p, 12*p, 4*p, 3*p);
-  
-      // Arms
+      ctx.fillRect(-11*p, 0, 5*p, 12*p); ctx.fillRect(6*p, 0, 5*p, 12*p);
+      ctx.fillStyle = '#c8a030'; ctx.fillRect(-2*p, 2*p, 4*p, 5*p);
+      ctx.fillStyle = '#1a2848'; ctx.fillRect(-15*p, -2*p, 5*p, 14*p); ctx.fillRect(10*p, -2*p, 5*p, 14*p);
+      ctx.fillStyle = '#d0a880'; ctx.fillRect(-3*p, -4*p, 6*p, 5*p);
+      ctx.fillStyle = '#d0a880'; ctx.fillRect(-7*p, -22*p, 14*p, 18*p);
       ctx.fillStyle = '#1a2848';
-      ctx.fillRect(-15*p, -2*p, 5*p, 14*p);
-      ctx.fillRect(10*p, -2*p, 5*p, 14*p);
-      ctx.fillStyle = '#d0a880';
-      ctx.fillRect(-15*p, 11*p, 5*p, 4*p);
-      ctx.fillRect(10*p, 11*p, 5*p, 4*p);
-  
-      // Neck
-      ctx.fillStyle = '#d0a880';
-      ctx.fillRect(-3*p, -4*p, 6*p, 5*p);
-  
-      // Head
-      ctx.fillStyle = '#d0a880';
-      ctx.fillRect(-7*p, -22*p, 14*p, 18*p);
-      ctx.fillStyle = 'rgba(255,200,120,0.15)';
-      ctx.fillRect(-7*p, -22*p, 14*p, 4*p);
-  
-      // Cop hat
-      ctx.fillStyle = '#1a2848';
-      ctx.fillRect(-10*p, -28*p, 20*p, 3*p);
-      ctx.fillRect(-6*p, -36*p, 12*p, 9*p);
-      ctx.fillStyle = '#c8a030';
-      ctx.fillRect(-6*p, -28*p, 12*p, p);
-      ctx.fillStyle = '#0a0a18';
-      ctx.fillRect(-6*p, -28*p, 12*p, 3*p);
-      ctx.fillStyle = '#c8a030';
-      ctx.fillRect(-2*p, -33*p, 4*p, 4*p);
-  
-      // Shadow under brim
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.fillRect(-7*p, -25*p, 14*p, 5*p);
-  
-      // Eyes
+      ctx.fillRect(-10*p, -28*p, 20*p, 3*p); ctx.fillRect(-6*p, -36*p, 12*p, 9*p);
+      ctx.fillStyle = '#c8a030'; ctx.fillRect(-6*p, -28*p, 12*p, p);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(-7*p, -25*p, 14*p, 5*p);
       const eyeY = -15*p;
       if (expr === 'suspicious' || expr === 'angry') {
         ctx.fillStyle = '#2a1808';
-        ctx.fillRect(-5*p, eyeY, 4*p, 3*p);
-        ctx.fillRect(1*p, eyeY, 4*p, 3*p);
-        ctx.fillStyle = '#c8a030';
-        ctx.fillRect(-4*p, eyeY+p, 2*p, 2*p);
-        ctx.fillRect(2*p, eyeY+p, 2*p, 2*p);
-        // Frowning brows
+        ctx.fillRect(-5*p, eyeY, 4*p, 3*p); ctx.fillRect(1*p, eyeY, 4*p, 3*p);
         ctx.fillStyle = '#2a1808';
-        ctx.fillRect(-5*p, eyeY-3*p, 5*p, 2*p);
-        ctx.fillRect(0, eyeY-2*p, 5*p, 2*p);
+        ctx.fillRect(-5*p, eyeY-3*p, 5*p, 2*p); ctx.fillRect(0, eyeY-2*p, 5*p, 2*p);
       } else {
         ctx.fillStyle = '#2a1808';
-        ctx.fillRect(-5*p, eyeY, 4*p, 4*p);
-        ctx.fillRect(1*p, eyeY, 4*p, 4*p);
-        ctx.fillStyle = '#806040';
-        ctx.fillRect(-4*p, eyeY+p, 2*p, 2*p);
-        ctx.fillRect(2*p, eyeY+p, 2*p, 2*p);
+        ctx.fillRect(-5*p, eyeY, 4*p, 4*p); ctx.fillRect(1*p, eyeY, 4*p, 4*p);
       }
-  
-      // Moustache
-      ctx.fillStyle = '#3a2a18';
-      ctx.fillRect(-5*p, -9*p, 10*p, 3*p);
-      ctx.fillStyle = '#2a1a08';
-      ctx.fillRect(-5*p, -8*p, 5*p, 2*p);
-  
-      // Mouth
-      const mY = -6*p;
-      if (expr === 'angry') {
-        ctx.fillStyle = '#7a5030';
-        ctx.fillRect(-3*p, mY, 6*p, p);
-        ctx.fillRect(-3*p, mY-p, 2*p, p);
-        ctx.fillRect(1*p, mY-p, 2*p, p);
-      } else {
-        ctx.fillStyle = '#7a5030';
-        ctx.fillRect(-3*p, mY, 6*p, p);
-      }
-  
+      ctx.fillStyle = '#3a2a18'; ctx.fillRect(-5*p, -9*p, 10*p, 3*p);
+      ctx.fillStyle = '#7a5030'; ctx.fillRect(-3*p, -6*p, 6*p, p);
       ctx.restore();
     };
   
@@ -700,98 +531,223 @@
       const cx = PORTRAIT_W/2, cy = PORTRAIT_H/2 + 15;
       const p = P;
       ctx.save(); ctx.translate(cx, cy);
-  
       ctx.fillStyle = 'rgba(15,10,5,0.9)';
       ctx.fillRect(-PORTRAIT_W/2, -PORTRAIT_H/2, PORTRAIT_W, PORTRAIT_H);
-  
-      // Body — torn coat
-      ctx.fillStyle = '#4a3820';
-      ctx.fillRect(-9*p, 0, 18*p, 20*p);
+      ctx.fillStyle = '#4a3820'; ctx.fillRect(-9*p, 0, 18*p, 20*p);
       ctx.fillStyle = '#3a2810';
-      ctx.fillRect(-9*p, 0, 4*p, 14*p);
-      ctx.fillRect(5*p, 0, 4*p, 14*p);
-      // Torn edges
-      ctx.fillStyle = '#2a1808';
-      ctx.fillRect(-9*p, 14*p, 3*p, 6*p);
-      ctx.fillRect(-5*p, 16*p, 3*p, 4*p);
-      ctx.fillRect(3*p, 15*p, 3*p, 5*p);
-      ctx.fillRect(7*p, 13*p, 2*p, 7*p);
-      // Patches
-      ctx.fillStyle = '#6a4820';
-      ctx.fillRect(-2*p, 5*p, 5*p, 4*p);
-      ctx.fillStyle = '#2a1808';
-      ctx.fillRect(-2*p, 5*p, 5*p, p);
-  
-      // Arms
+      ctx.fillRect(-9*p, 0, 4*p, 14*p); ctx.fillRect(5*p, 0, 4*p, 14*p);
       ctx.fillStyle = '#4a3820';
-      ctx.fillRect(-13*p, -3*p, 5*p, 14*p);
-      ctx.fillRect(8*p, -3*p, 5*p, 14*p);
+      ctx.fillRect(-13*p, -3*p, 5*p, 14*p); ctx.fillRect(8*p, -3*p, 5*p, 14*p);
       ctx.fillStyle = '#c0a060';
-      ctx.fillRect(-13*p, 10*p, 5*p, 4*p);
-      ctx.fillRect(8*p, 10*p, 5*p, 4*p);
-  
-      // Neck
-      ctx.fillStyle = '#b89050';
-      ctx.fillRect(-2*p, -4*p, 5*p, 5*p);
-  
-      // Head — unshaven
-      ctx.fillStyle = '#b89050';
-      ctx.fillRect(-8*p, -22*p, 16*p, 18*p);
-  
-      // Messy hair
-      ctx.fillStyle = '#3a2a10';
-      ctx.fillRect(-9*p, -26*p, 18*p, 8*p);
-      ctx.fillRect(-10*p, -24*p, 4*p, 6*p);
-      ctx.fillRect(6*p, -23*p, 5*p, 5*p);
-      ctx.fillStyle = '#4a3820';
-      ctx.fillRect(-9*p, -22*p, 5*p, 3*p);
-      ctx.fillRect(5*p, -21*p, 4*p, 2*p);
-  
-      // Stubble
-      for (let sx = -7; sx <= 6; sx += 2) {
-        for (let sy = -12; sy <= -7; sy += 2) {
-          if (Math.abs(sx) < 5 || sy > -9) {
-            ctx.fillStyle = 'rgba(50,35,15,0.5)';
-            ctx.fillRect(sx*p, sy*p, p, p);
-          }
-        }
+      ctx.fillRect(-13*p, 10*p, 5*p, 4*p); ctx.fillRect(8*p, 10*p, 5*p, 4*p);
+      ctx.fillStyle = '#b89050'; ctx.fillRect(-2*p, -4*p, 5*p, 5*p);
+      ctx.fillStyle = '#b89050'; ctx.fillRect(-8*p, -22*p, 16*p, 18*p);
+      ctx.fillStyle = '#3a2a10'; ctx.fillRect(-9*p, -26*p, 18*p, 8*p);
+      for (let sx = -7; sx <= 6; sx += 2) for (let sy = -12; sy <= -7; sy += 2) {
+        ctx.fillStyle = 'rgba(50,35,15,0.5)'; ctx.fillRect(sx*p, sy*p, p, p);
       }
-  
-      // Eyes
       const eyeY = -14*p;
       if (expr === 'sad') {
         ctx.fillStyle = '#2a1a08';
-        ctx.fillRect(-5*p, eyeY, 4*p, 3*p);
-        ctx.fillRect(1*p, eyeY, 4*p, 3*p);
-        ctx.fillStyle = '#8a6040';
-        ctx.fillRect(-4*p, eyeY+p, 2*p, 2*p);
-        ctx.fillRect(2*p, eyeY+p, 2*p, 2*p);
-        // Drooping brows
+        ctx.fillRect(-5*p, eyeY, 4*p, 3*p); ctx.fillRect(1*p, eyeY, 4*p, 3*p);
         ctx.fillStyle = '#3a2a10';
-        ctx.fillRect(-5*p, eyeY-3*p, 2*p, 2*p);
-        ctx.fillRect(-3*p, eyeY-2*p, 3*p, 2*p);
-        ctx.fillRect(0, eyeY-2*p, 3*p, 2*p);
-        ctx.fillRect(3*p, eyeY-3*p, 2*p, 2*p);
+        ctx.fillRect(-5*p, eyeY-3*p, 2*p, 2*p); ctx.fillRect(3*p, eyeY-3*p, 2*p, 2*p);
       } else {
         ctx.fillStyle = '#2a1a08';
-        ctx.fillRect(-5*p, eyeY, 4*p, 4*p);
-        ctx.fillRect(1*p, eyeY, 4*p, 4*p);
-        ctx.fillStyle = '#8a6040';
-        ctx.fillRect(-4*p, eyeY+p, 2*p, 2*p);
-        ctx.fillRect(2*p, eyeY+p, 2*p, 2*p);
+        ctx.fillRect(-5*p, eyeY, 4*p, 4*p); ctx.fillRect(1*p, eyeY, 4*p, 4*p);
       }
-  
-      // Mouth
       if (expr === 'sad') {
         ctx.fillStyle = '#7a5030';
-        ctx.fillRect(-3*p, -8*p, 6*p, p);
-        ctx.fillRect(-4*p, -7*p, 2*p, p);
-        ctx.fillRect(2*p, -7*p, 2*p, p);
+        ctx.fillRect(-3*p, -8*p, 6*p, p); ctx.fillRect(-4*p, -7*p, 2*p, p); ctx.fillRect(2*p, -7*p, 2*p, p);
       } else {
-        ctx.fillStyle = '#7a5030';
-        ctx.fillRect(-3*p, -8*p, 6*p, p);
+        ctx.fillStyle = '#7a5030'; ctx.fillRect(-3*p, -8*p, 6*p, p);
       }
+      ctx.restore();
+    };
   
+    /* ── BOUNCER ── */
+    PORTRAITS.bouncer = function(ctx, expr) {
+      const cx = 168/2, cy = 168/2+20, p = 3;
+      ctx.save(); ctx.translate(cx, cy);
+      ctx.fillStyle = 'rgba(5,0,12,0.95)'; ctx.fillRect(-84,-84,168,168);
+      ctx.fillStyle = '#0a0a14'; ctx.fillRect(-11*p,-20*p,22*p,28*p);
+      ctx.fillStyle = 'rgba(255,64,192,0.05)'; ctx.fillRect(-11*p,-20*p,22*p,28*p);
+      ctx.fillStyle = '#050508';
+      ctx.fillRect(-11*p,-20*p,6*p,15*p); ctx.fillRect(5*p,-20*p,6*p,15*p);
+      ctx.fillStyle = '#ff2850'; ctx.fillRect(-p,-20*p,2*p,14*p);
+      ctx.fillRect(-2*p,-6*p,4*p,3*p);
+      ctx.fillStyle = '#c0c0c0'; ctx.fillRect(-12*p,-10*p,2*p,3*p);
+      ctx.fillStyle = '#c8a070'; ctx.fillRect(-4*p,-22*p,8*p,4*p);
+      ctx.fillStyle = '#c8a070'; ctx.fillRect(-8*p,-37*p,16*p,16*p);
+      ctx.fillStyle = '#1a1008'; ctx.fillRect(-8*p,-42*p,16*p,7*p);
+      if (expr === 'angry') {
+        ctx.fillStyle = '#1a0a04';
+        ctx.fillRect(-6*p,-30*p,5*p,3*p); ctx.fillRect(p,-30*p,5*p,3*p);
+        ctx.fillStyle = '#604030';
+        ctx.fillRect(-5*p,-29*p,3*p,2*p); ctx.fillRect(2*p,-29*p,3*p,2*p);
+        ctx.fillStyle = '#1a0808';
+        ctx.fillRect(-6*p,-33*p,6*p,2*p); ctx.fillRect(0,-32*p,6*p,2*p);
+      } else {
+        ctx.fillStyle = '#1a0a04';
+        ctx.fillRect(-6*p,-30*p,5*p,4*p); ctx.fillRect(p,-30*p,5*p,4*p);
+        ctx.fillStyle = '#604030';
+        ctx.fillRect(-5*p,-29*p,3*p,2*p); ctx.fillRect(2*p,-29*p,3*p,2*p);
+      }
+      ctx.fillStyle = '#8a6040'; ctx.fillRect(-4*p,-24*p,8*p,p);
+      ctx.restore();
+    };
+  
+    /* ── PAWN ── */
+    PORTRAITS.pawn = function(ctx, expr) {
+      const cx=168/2, cy=168/2+18, p=3;
+      ctx.save(); ctx.translate(cx,cy);
+      ctx.fillStyle='rgba(20,10,5,0.85)'; ctx.fillRect(-84,-84,168,168);
+      ctx.fillStyle='#3a2828'; ctx.fillRect(-9*p,-4*p,18*p,20*p);
+      ctx.fillStyle='#c8b070'; ctx.fillRect(-7*p,-4*p,14*p,18*p);
+      ctx.fillStyle='#a89050'; ctx.fillRect(-7*p,-4*p,4*p,10*p);
+      ctx.fillStyle='rgba(80,40,20,0.5)';
+      ctx.fillRect(-2*p,0,3*p,3*p); ctx.fillRect(3*p,5*p,2*p,2*p);
+      ctx.fillStyle='#c8a070'; ctx.fillRect(-3*p,-6*p,6*p,3*p);
+      ctx.fillStyle='#c8a070'; ctx.fillRect(-8*p,-20*p,16*p,14*p);
+      ctx.fillStyle='#2a1a08';
+      ctx.fillRect(-8*p,-24*p,6*p,7*p); ctx.fillRect(2*p,-24*p,6*p,7*p);
+      ctx.fillStyle='#1a0808'; ctx.fillRect(-5*p,-10*p,10*p,2*p);
+      if (expr === 'angry') {
+        ctx.fillStyle='#1a0a04';
+        ctx.fillRect(-6*p,-16*p,5*p,3*p); ctx.fillRect(p,-16*p,5*p,3*p);
+        ctx.fillStyle='#1a0808';
+        ctx.fillRect(-6*p,-19*p,6*p,2*p); ctx.fillRect(0,-18*p,6*p,2*p);
+      } else {
+        ctx.fillStyle='#1a0a04';
+        ctx.fillRect(-6*p,-16*p,5*p,4*p); ctx.fillRect(p,-16*p,5*p,4*p);
+        ctx.fillStyle='rgba(255,255,255,0.7)';
+        ctx.fillRect(-5*p,-16*p,p,p); ctx.fillRect(2*p,-16*p,p,p);
+      }
+      ctx.fillStyle='#c8a070'; ctx.fillRect(-3*p,-8*p,6*p,p);
+      const gt=0.5+0.5*Math.sin(Date.now()/300);
+      ctx.globalAlpha=gt; ctx.fillStyle='#f0c020'; ctx.fillRect(p,-8*p,p,p); ctx.globalAlpha=1;
+      ctx.restore();
+    };
+  
+    /* ── BARTENDER ── */
+    PORTRAITS.bartender = function(ctx, expr) {
+      const cx=168/2, cy=168/2+16, p=3;
+      ctx.save(); ctx.translate(cx,cy);
+      const bg=ctx.createLinearGradient(0,-84,0,84);
+      bg.addColorStop(0,'rgba(20,5,30,0.95)'); bg.addColorStop(1,'rgba(40,5,15,0.98)');
+      ctx.fillStyle=bg; ctx.fillRect(-84,-84,168,168);
+      ctx.globalAlpha=0.12+0.08*Math.sin(Date.now()/700);
+      ctx.fillStyle='#ff2850'; ctx.fillRect(-84,-84,168,168); ctx.globalAlpha=1;
+      ctx.fillStyle='#3a1828'; ctx.fillRect(-9*p,-4*p,18*p,20*p);
+      ctx.fillStyle='#2a1a30'; ctx.fillRect(-7*p,-16*p,14*p,14*p);
+      ctx.fillStyle='#c0c0b0'; ctx.fillRect(7*p,-1*p,8*p,4*p);
+      ctx.fillStyle='#c0a070'; ctx.fillRect(-2*p,-18*p,4*p,3*p);
+      ctx.fillStyle='#c0a070'; ctx.fillRect(-7*p,-32*p,14*p,14*p);
+      ctx.fillStyle='#1a1020'; ctx.fillRect(-8*p,-38*p,16*p,9*p);
+      ctx.fillRect(-9*p,-35*p,3*p,5*p);
+      ctx.fillStyle='#8020c0'; ctx.fillRect(2*p,-38*p,5*p,8*p);
+      ctx.fillStyle='#0a0610';
+      ctx.fillRect(-5*p,-27*p,4*p,4*p); ctx.fillRect(p,-27*p,4*p,4*p);
+      ctx.fillStyle='#8020c0';
+      ctx.fillRect(-6*p,-24*p,6*p,p); ctx.fillRect(0,-24*p,6*p,p);
+      ctx.fillStyle='#6a3848';
+      ctx.fillRect(-4*p,-26*p,2*p,3*p); ctx.fillRect(2*p,-26*p,2*p,3*p);
+      if (expr === 'smirk') {
+        ctx.fillStyle='#c02030'; ctx.fillRect(-3*p,-21*p,6*p,2*p);
+        ctx.fillRect(2*p,-20*p,2*p,p);
+      } else {
+        ctx.fillStyle='#c02030'; ctx.fillRect(-3*p,-21*p,6*p,2*p);
+      }
+      ctx.fillStyle='#8020c0';
+      ctx.fillRect(-9*p,-28*p,2*p,3*p); ctx.fillRect(7*p,-28*p,2*p,3*p);
+      ctx.restore();
+    };
+  
+    /* ── LOANSHARK ── */
+    PORTRAITS.loanshark = function(ctx, expr) {
+      const cx=168/2, cy=168/2+18, p=3;
+      ctx.save(); ctx.translate(cx,cy);
+      const bg=ctx.createLinearGradient(0,-84,0,84);
+      bg.addColorStop(0,'rgba(5,5,20,0.98)'); bg.addColorStop(1,'rgba(10,8,25,0.98)');
+      ctx.fillStyle=bg; ctx.fillRect(-84,-84,168,168);
+      ctx.globalAlpha=0.08+0.05*Math.sin(Date.now()/600);
+      ctx.fillStyle='#4050ff'; ctx.fillRect(-84,-84,168,168); ctx.globalAlpha=1;
+      ctx.fillStyle='#181828'; ctx.fillRect(-9*p,-16*p,18*p,24*p);
+      ctx.fillStyle='rgba(255,255,255,0.04)';
+      for(let sx=-9;sx<9;sx+=3) ctx.fillRect(sx*p,-16*p,p,24*p);
+      ctx.fillStyle='#0e0e1e';
+      ctx.fillRect(-9*p,-16*p,5*p,12*p); ctx.fillRect(4*p,-16*p,5*p,12*p);
+      ctx.fillStyle='#e0e0e8'; ctx.fillRect(-3*p,-16*p,6*p,12*p);
+      ctx.fillStyle='#c02020'; ctx.fillRect(-p,-16*p,2*p,12*p);
+      ctx.fillStyle='#d0a888'; ctx.fillRect(-3*p,-18*p,6*p,3*p);
+      ctx.fillStyle='#d0a888'; ctx.fillRect(-7*p,-32*p,14*p,14*p);
+      ctx.fillStyle='#0a0810'; ctx.fillRect(-7*p,-38*p,14*p,8*p);
+      if (expr === 'threatening' || expr === 'angry') {
+        ctx.fillStyle='#1a1428';
+        ctx.fillRect(-6*p,-26*p,5*p,3*p); ctx.fillRect(p,-26*p,5*p,3*p);
+        ctx.fillStyle='#ff2020';
+        ctx.fillRect(-5*p,-25*p,3*p,2*p); ctx.fillRect(2*p,-25*p,3*p,2*p);
+      } else {
+        ctx.fillStyle='#1a1428';
+        ctx.fillRect(-6*p,-26*p,5*p,4*p); ctx.fillRect(p,-26*p,5*p,4*p);
+        ctx.fillStyle='#4a3868';
+        ctx.fillRect(-5*p,-25*p,3*p,2*p); ctx.fillRect(2*p,-25*p,3*p,2*p);
+      }
+      ctx.strokeStyle='rgba(200,80,60,0.6)'; ctx.lineWidth=p*0.8;
+      ctx.beginPath(); ctx.moveTo(-4*p,-25*p); ctx.lineTo(-6*p,-21*p); ctx.stroke();
+      ctx.fillStyle='#9a6848'; ctx.fillRect(-3*p,-21*p,7*p,p); ctx.fillRect(2*p,-20*p,2*p,p);
+      ctx.fillStyle='#f0c020'; ctx.fillRect(8*p,1*p,2*p,2*p);
+      ctx.restore();
+    };
+  
+    /* ── GAMBLER ── */
+    PORTRAITS.gambler = function(ctx, expr) {
+      const cx=168/2, cy=168/2+16, p=3;
+      ctx.save(); ctx.translate(cx,cy);
+      ctx.fillStyle='rgba(15,8,5,0.9)'; ctx.fillRect(-84,-84,168,168);
+      ctx.fillStyle='#d8c090'; ctx.fillRect(-9*p,-14*p,18*p,22*p);
+      ctx.fillStyle='#c04020'; ctx.fillRect(-p,-14*p,2*p,12*p);
+      ctx.fillStyle='#c8a870'; ctx.fillRect(-3*p,-16*p,6*p,3*p);
+      ctx.save(); ctx.rotate(-0.08);
+      ctx.fillStyle='#c8a870'; ctx.fillRect(-7*p,-30*p,14*p,14*p);
+      ctx.fillStyle='#4a3010'; ctx.fillRect(-8*p,-36*p,16*p,8*p);
+      if (expr === 'happy') {
+        ctx.fillStyle='#2a1808';
+        ctx.fillRect(-5*p,-24*p,4*p,3*p); ctx.fillRect(p,-24*p,4*p,2*p);
+      } else {
+        ctx.fillStyle='#2a1808';
+        ctx.fillRect(-5*p,-24*p,4*p,4*p); ctx.fillRect(p,-24*p,4*p,3*p);
+      }
+      ctx.fillStyle='rgba(255,100,80,0.25)';
+      ctx.fillRect(-5*p,-24*p,4*p,4*p); ctx.fillRect(p,-24*p,4*p,3*p);
+      ctx.fillStyle='#7a5028'; ctx.fillRect(-5*p,-19*p,10*p,2*p);
+      ctx.fillRect(-6*p,-18*p,2*p,p); ctx.fillRect(4*p,-18*p,2*p,p);
+      ctx.restore();
+      ctx.restore();
+    };
+  
+    /* ── SHADOW ── */
+    PORTRAITS.shadow = function(ctx, expr) {
+      const cx=168/2, cy=168/2+16, p=3;
+      ctx.save(); ctx.translate(cx,cy);
+      ctx.fillStyle='rgba(2,1,5,0.98)'; ctx.fillRect(-84,-84,168,168);
+      const t=Date.now();
+      const flicker=0.6+0.4*Math.sin(t/250);
+      ctx.globalAlpha=flicker;
+      ctx.fillStyle='#030208'; ctx.fillRect(-10*p,-38*p,20*p,52*p);
+      ctx.fillStyle='rgba(120,50,255,0.3)';
+      ctx.fillRect(-10*p,-38*p,2*p,52*p); ctx.fillRect(8*p,-38*p,2*p,52*p);
+      ctx.fillRect(-10*p,-38*p,20*p,2*p);
+      const eg=0.7+0.3*Math.sin(t/350);
+      ctx.globalAlpha=eg; ctx.fillStyle='rgba(160,80,255,0.95)';
+      ctx.fillRect(-3*p,-24*p,2*p,2*p); ctx.fillRect(p,-24*p,2*p,2*p);
+      for(let i=0;i<6;i++){
+        const ox=Math.sin(t/500+i*0.9)*3*p;
+        const oy=(Math.cos(t/400+i*1.2)*2-i*2.5)*p;
+        ctx.globalAlpha=0.05*Math.abs(Math.sin(t/600+i));
+        ctx.fillStyle='#6020a0'; ctx.fillRect(-10*p+ox,-38*p+oy,20*p,4*p);
+      }
+      ctx.globalAlpha=1;
       ctx.restore();
     };
   

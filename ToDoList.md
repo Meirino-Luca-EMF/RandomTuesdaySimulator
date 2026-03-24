@@ -15,4 +15,4 @@
 - [ ] Fix hitboxs in the hous, if there is an object on a tile it shouldn't be possible to walk on it
 - [ ] Add possibility to skip the cinematic
 - [ ] The top line tellign us how much mney we have, our dignity and the location isn't concording with the house's inside, it should be "money", "Dignity", "location", "Equipped item" in every zones
-- [ ] when coming back from street3 (Alley District) we tp back to our door, and not at the end of street 2
+- [ ] when coming back from street3 (Alley District) we tp back to our door, and not at the end of street 2 like it's supposed to be
