@@ -5,237 +5,257 @@
 
 /* ── DIALOG OVERLAY ── */
 #dialog-overlay {
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
-    height: 220px;
-    z-index: 800;
-    display: none;
-    pointer-events: none;
-    font-family: 'VT323', monospace;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 220px;
+  z-index: 800;
+  display: none;
+  pointer-events: none;
+  font-family: "VT323", monospace;
+}
+#dialog-overlay.open {
+  display: block;
+  pointer-events: all;
+}
+
+/* ── OUTER BOX ── */
+.dlg-box {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 20px;
+  height: 176px;
+  background: #0a0604;
+  border: 4px solid #ffe600;
+  box-shadow: 0 0 0 2px #0a0604, 0 0 0 5px #ffe600, 6px 6px 0 #0a0604;
+  display: flex;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* ── LEFT PORTRAIT ── */
+.dlg-portrait-left,
+.dlg-portrait-right {
+  width: 168px;
+  min-width: 168px;
+  height: 100%;
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.dlg-portrait-right {
+  order: 3;
+}
+.dlg-portrait-left canvas,
+.dlg-portrait-right canvas {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+/* separator line */
+.dlg-portrait-left::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  right: 0;
+  width: 4px;
+  background: #ffe600;
+}
+.dlg-portrait-right::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 4px;
+  background: #ffe600;
+}
+
+/* ── NAME TAG ── */
+.dlg-nametag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 4px;
+  background: #ffe600;
+  color: #1a1200;
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  text-align: center;
+  padding: 2px 4px;
+  z-index: 2;
+}
+.dlg-portrait-right .dlg-nametag {
+  left: 4px;
+  right: 0;
+}
+
+/* ── MIDDLE TEXT AREA ── */
+.dlg-middle {
+  flex: 1;
+  order: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Speaker indicator strip at top */
+.dlg-speaker-bar {
+  height: 4px;
+  background: rgba(255, 230, 0, 0.15);
+  margin-bottom: 10px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.dlg-speaker-bar-fill {
+  height: 100%;
+  background: #ffe600;
+  transition: width 0.3s ease;
+}
+
+/* Text */
+.dlg-text {
+  flex: 1;
+  color: #f2e8c9;
+  font-family: "VT323", monospace;
+  font-size: 1.45rem;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* Typewriter cursor */
+.dlg-cursor {
+  display: inline-block;
+  width: 10px;
+  height: 1.2em;
+  background: #ffe600;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: dlgBlink 0.6s step-end infinite;
+}
+@keyframes dlgBlink {
+  50% {
+    opacity: 0;
   }
-  #dialog-overlay.open {
-    display: block;
-    pointer-events: all;
+}
+
+/* Advance arrow */
+.dlg-arrow {
+  position: absolute;
+  right: 18px;
+  bottom: 12px;
+  font-size: 1.4rem;
+  color: #ffe600;
+  animation: dlgBounce 0.5s ease-in-out infinite alternate;
+}
+@keyframes dlgBounce {
+  from {
+    transform: translateY(0);
   }
-  
-  /* ── OUTER BOX ── */
-  .dlg-box {
-    position: absolute;
-    left: 24px; right: 24px; bottom: 20px;
-    height: 176px;
-    background: #0a0604;
-    border: 4px solid #ffe600;
-    box-shadow:
-      0 0 0 2px #0a0604,
-      0 0 0 5px #ffe600,
-      6px 6px 0 #0a0604;
-    display: flex;
-    gap: 0;
-    overflow: hidden;
+  to {
+    transform: translateY(4px);
   }
-  
-  /* ── LEFT PORTRAIT ── */
-  .dlg-portrait-left,
-  .dlg-portrait-right {
-    width: 168px;
-    min-width: 168px;
-    height: 100%;
-    position: relative;
-    flex-shrink: 0;
-    overflow: hidden;
+}
+
+/* Page dots */
+.dlg-dots {
+  display: flex;
+  gap: 6px;
+  position: absolute;
+  left: 18px;
+  bottom: 14px;
+}
+.dlg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 230, 0, 0.35);
+  background: transparent;
+  transition: background 0.2s, border-color 0.2s;
+}
+.dlg-dot.active {
+  background: #ffe600;
+  border-color: #ffe600;
+}
+.dlg-dot.done {
+  background: rgba(255, 230, 0, 0.35);
+  border-color: rgba(255, 230, 0, 0.35);
+}
+
+/* ── CHOICE MENU ── */
+.dlg-choices {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.dlg-choices.open {
+  display: flex;
+}
+.dlg-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "VT323", monospace;
+  font-size: 1.35rem;
+  color: #c8b090;
+  padding: 2px 0;
+  cursor: pointer;
+  transition: color 0.1s;
+}
+.dlg-choice::before {
+  content: "▷";
+  color: transparent;
+  font-size: 1.2rem;
+  transition: color 0.1s, transform 0.1s;
+}
+.dlg-choice.selected {
+  color: #f2e8c9;
+}
+.dlg-choice.selected::before {
+  content: "▶";
+  color: #ffe600;
+  transform: translateX(2px);
+}
+
+/* ── EXPRESSION STATES for portrait ── */
+/* These are applied as classes on the portrait wrapper */
+.portrait-flash {
+  animation: portraitFlash 0.1s ease-out;
+}
+@keyframes portraitFlash {
+  0% {
+    filter: brightness(3);
   }
-  .dlg-portrait-right {
-    order: 3;
+  100% {
+    filter: brightness(1);
   }
-  .dlg-portrait-left canvas,
-  .dlg-portrait-right canvas {
-    width: 100%;
-    height: 100%;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-    display: block;
-  }
-  /* separator line */
-  .dlg-portrait-left::after {
-    content: '';
-    position: absolute;
-    top: 8px; bottom: 8px; right: 0;
-    width: 4px;
-    background: #ffe600;
-  }
-  .dlg-portrait-right::before {
-    content: '';
-    position: absolute;
-    top: 8px; bottom: 8px; left: 0;
-    width: 4px;
-    background: #ffe600;
-  }
-  
-  /* ── NAME TAG ── */
-  .dlg-nametag {
-    position: absolute;
-    top: 0; left: 0; right: 4px;
-    background: #ffe600;
-    color: #1a1200;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1rem;
-    letter-spacing: 0.1em;
-    text-align: center;
-    padding: 2px 4px;
-    z-index: 2;
-  }
-  .dlg-portrait-right .dlg-nametag {
-    left: 4px; right: 0;
-  }
-  
-  /* ── MIDDLE TEXT AREA ── */
-  .dlg-middle {
-    flex: 1;
-    order: 2;
-    display: flex;
-    flex-direction: column;
-    padding: 14px 18px 10px;
-    position: relative;
-    overflow: hidden;
-  }
-  
-  /* Speaker indicator strip at top */
-  .dlg-speaker-bar {
-    height: 4px;
-    background: rgba(255,230,0,0.15);
-    margin-bottom: 10px;
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  .dlg-speaker-bar-fill {
-    height: 100%;
-    background: #ffe600;
-    transition: width 0.3s ease;
-  }
-  
-  /* Text */
-  .dlg-text {
-    flex: 1;
-    color: #f2e8c9;
-    font-family: 'VT323', monospace;
-    font-size: 1.45rem;
-    line-height: 1.5;
-    overflow: hidden;
-  }
-  
-  /* Typewriter cursor */
-  .dlg-cursor {
-    display: inline-block;
-    width: 10px;
-    height: 1.2em;
-    background: #ffe600;
-    margin-left: 2px;
-    vertical-align: middle;
-    animation: dlgBlink 0.6s step-end infinite;
-  }
-  @keyframes dlgBlink { 50% { opacity: 0; } }
-  
-  /* Advance arrow */
-  .dlg-arrow {
-    position: absolute;
-    right: 18px;
-    bottom: 12px;
-    font-size: 1.4rem;
-    color: #ffe600;
-    animation: dlgBounce 0.5s ease-in-out infinite alternate;
-  }
-  @keyframes dlgBounce {
-    from { transform: translateY(0); }
-    to   { transform: translateY(4px); }
-  }
-  
-  /* Page dots */
-  .dlg-dots {
-    display: flex;
-    gap: 6px;
-    position: absolute;
-    left: 18px;
-    bottom: 14px;
-  }
-  .dlg-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    border: 2px solid rgba(255,230,0,0.35);
-    background: transparent;
-    transition: background 0.2s, border-color 0.2s;
-  }
-  .dlg-dot.active {
-    background: #ffe600;
-    border-color: #ffe600;
-  }
-  .dlg-dot.done {
-    background: rgba(255,230,0,0.35);
-    border-color: rgba(255,230,0,0.35);
-  }
-  
-  /* ── CHOICE MENU ── */
-  .dlg-choices {
-    display: none;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 8px;
-  }
-  .dlg-choices.open {
-    display: flex;
-  }
-  .dlg-choice {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: 'VT323', monospace;
-    font-size: 1.35rem;
-    color: #c8b090;
-    padding: 2px 0;
-    cursor: pointer;
-    transition: color 0.1s;
-  }
-  .dlg-choice::before {
-    content: '▷';
-    color: transparent;
-    font-size: 1.2rem;
-    transition: color 0.1s, transform 0.1s;
-  }
-  .dlg-choice.selected {
-    color: #f2e8c9;
-  }
-  .dlg-choice.selected::before {
-    content: '▶';
-    color: #ffe600;
-    transform: translateX(2px);
-  }
-  
-  /* ── EXPRESSION STATES for portrait ── */
-  /* These are applied as classes on the portrait wrapper */
-  .portrait-flash {
-    animation: portraitFlash 0.1s ease-out;
-  }
-  @keyframes portraitFlash {
-    0%   { filter: brightness(3); }
-    100% { filter: brightness(1); }
-  }
-  
-  /* Scanlines on portrait */
-  .dlg-portrait-left::before,
-  .dlg-portrait-right::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 3px,
-      rgba(0,0,0,0.18) 3px,
-      rgba(0,0,0,0.18) 4px
-    );
-    pointer-events: none;
-    z-index: 1;
-  }
-  .dlg-portrait-right::before {
-    left: 4px;
-  }
+}
+
+/* Scanlines on portrait */
+.dlg-portrait-left::before,
+.dlg-portrait-right::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.18) 3px,
+    rgba(0, 0, 0, 0.18) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+.dlg-portrait-right::before {
+  left: 4px;
+}

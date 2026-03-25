@@ -1,40 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Random Tuesday Simulator — The Apartment</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=VT323&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../styles/Style.css"/>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Random Tuesday Simulator — The Apartment</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=VT323&family=IBM+Plex+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles/Style.css" />
+  </head>
+  <body>
+    <!-- BACKGROUND LAYERS (kept so HUD/dialog overlays match the main game's vibe) -->
+    <div class="bg-layer bg-grid"></div>
+    <div class="bg-noise"></div>
+    <div class="scanlines"></div>
 
-  <!-- BACKGROUND LAYERS (kept so HUD/dialog overlays match the main game's vibe) -->
-  <div class="bg-layer bg-grid"></div>
-  <div class="bg-noise"></div>
-  <div class="scanlines"></div>
+    <!-- Fade-in overlay (plays on entry from Street.html) -->
+    <div
+      id="game-fade"
+      style="
+        position: fixed;
+        inset: 0;
+        background: #0a0604;
+        z-index: 9998;
+        pointer-events: none;
+        transition: opacity 0.9s ease;
+        opacity: 1;
+      "
+    ></div>
 
-  <!-- Fade-in overlay (plays on entry from Street.html) -->
-  <div id="game-fade"
-    style="position:fixed;inset:0;background:#0a0604;z-index:9998;
-           pointer-events:none;transition:opacity 0.9s ease;opacity:1;"></div>
-
-  <script src="../scripts/World.js"></script>
-  <script>
-    // Boot directly into the game world — no title screen, no cinematic
-    window.addEventListener('load', () => {
-      startWorld();
-      // Fade in after world is ready
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          const fade = document.getElementById('game-fade');
-          if (fade) {
-            fade.style.opacity = '0';
-            setTimeout(() => fade.remove(), 1000);
-          }
-        })
-      );
-    });
-  </script>
-</body>
+    <script src="../scripts/World.js"></script>
+    <script>
+      // Boot directly into the game world — no title screen, no cinematic
+      window.addEventListener("load", () => {
+        startWorld();
+        // Fade in after world is ready
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            const fade = document.getElementById("game-fade");
+            if (fade) {
+              fade.style.opacity = "0";
+              setTimeout(() => fade.remove(), 1000);
+            }
+          })
+        );
+      });
+    </script>
+  </body>
 </html>

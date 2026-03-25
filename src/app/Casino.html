@@ -1,746 +1,1759 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Random Tuesday Simulator — Lucky Tuesday Casino</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=VT323&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../styles/Style.css"/>
-  <link rel="stylesheet" href="../styles/DialogSystem.css"/>
-  <style>
-    body { overflow:hidden; background:#3a1050; }
-    #fade-in { position:fixed;inset:0;background:#3a1050;z-index:9999;pointer-events:none;transition:opacity 1s ease; }
-    #casino-wrapper { position:fixed;inset:0;z-index:300;overflow:hidden; background:#3a1050; }
-    canvas { image-rendering:pixelated; image-rendering:crisp-edges; }
-    #casino-canvas { position:absolute; }
-    #ui-canvas    { position:absolute;top:0;left:0;pointer-events:none; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Random Tuesday Simulator — Lucky Tuesday Casino</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=VT323&family=IBM+Plex+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles/Style.css" />
+    <link rel="stylesheet" href="../styles/DialogSystem.css" />
+    <style>
+      body {
+        overflow: hidden;
+        background: #3a1050;
+      }
+      #fade-in {
+        position: fixed;
+        inset: 0;
+        background: #3a1050;
+        z-index: 9999;
+        pointer-events: none;
+        transition: opacity 1s ease;
+      }
+      #casino-wrapper {
+        position: fixed;
+        inset: 0;
+        z-index: 300;
+        overflow: hidden;
+        background: #3a1050;
+      }
+      canvas {
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+      #casino-canvas {
+        position: absolute;
+      }
+      #ui-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+      }
 
-    /* ── GAME PANELS (HTML overlay on top of canvas) ── */
-    #game-panel {
-      position:fixed; inset:0; z-index:600;
-      display:none; align-items:center; justify-content:center;
-      background:rgba(0,0,0,0.88);
-    }
-    #game-panel.open { display:flex; }
+      /* ── GAME PANELS (HTML overlay on top of canvas) ── */
+      #game-panel {
+        position: fixed;
+        inset: 0;
+        z-index: 600;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.88);
+      }
+      #game-panel.open {
+        display: flex;
+      }
 
-    .panel-box {
-      background:#0e0010;
-      border:3px solid #ff40c0;
-      box-shadow: 0 0 0 2px #0e0010, 0 0 0 5px #ff40c0, 8px 8px 0 #0e0010;
-      width:min(700px,96vw);
-      max-height:92vh;
-      overflow-y:auto;
-      padding:2rem 2.5rem 2.5rem;
-      position:relative;
-      font-family:'IBM Plex Mono',monospace;
-    }
-    .panel-title {
-      font-family:'Bebas Neue',sans-serif;
-      font-size:2.8rem;
-      color:#ff40c0;
-      text-shadow:0 0 20px rgba(255,64,192,0.7), 3px 3px 0 #000;
-      margin-bottom:0.3rem;
-    }
-    .panel-sub {
-      font-family:'VT323',monospace;
-      font-size:1rem;
-      color:rgba(255,255,255,0.4);
-      letter-spacing:0.15em;
-      margin-bottom:1.5rem;
-    }
-    .panel-close {
-      position:absolute; top:14px; right:18px;
-      background:none; border:none; cursor:pointer;
-      font-size:1.8rem; color:#ff40c0;
-      font-family:'Permanent Marker',cursive;
-      transition:transform 0.1s;
-    }
-    .panel-close:hover { transform:rotate(20deg) scale(1.2); }
-    hr.pink { border:none; border-top:1px solid rgba(255,64,192,0.3); margin:1.2rem 0; }
+      .panel-box {
+        background: #0e0010;
+        border: 3px solid #ff40c0;
+        box-shadow: 0 0 0 2px #0e0010, 0 0 0 5px #ff40c0, 8px 8px 0 #0e0010;
+        width: min(700px, 96vw);
+        max-height: 92vh;
+        overflow-y: auto;
+        padding: 2rem 2.5rem 2.5rem;
+        position: relative;
+        font-family: "IBM Plex Mono", monospace;
+      }
+      .panel-title {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 2.8rem;
+        color: #ff40c0;
+        text-shadow: 0 0 20px rgba(255, 64, 192, 0.7), 3px 3px 0 #000;
+        margin-bottom: 0.3rem;
+      }
+      .panel-sub {
+        font-family: "VT323", monospace;
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.4);
+        letter-spacing: 0.15em;
+        margin-bottom: 1.5rem;
+      }
+      .panel-close {
+        position: absolute;
+        top: 14px;
+        right: 18px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.8rem;
+        color: #ff40c0;
+        font-family: "Permanent Marker", cursive;
+        transition: transform 0.1s;
+      }
+      .panel-close:hover {
+        transform: rotate(20deg) scale(1.2);
+      }
+      hr.pink {
+        border: none;
+        border-top: 1px solid rgba(255, 64, 192, 0.3);
+        margin: 1.2rem 0;
+      }
 
-    /* Balance bar */
-    .balance-bar {
-      display:flex; gap:2rem; align-items:center;
-      background:rgba(255,64,192,0.08);
-      border:1px solid rgba(255,64,192,0.25);
-      border-radius:4px; padding:0.6rem 1rem;
-      margin-bottom:1.5rem;
-      font-family:'VT323',monospace; font-size:1.3rem;
-    }
-    .balance-bar span { color:#ffe600; }
-    .balance-bar .dig { color:#ff40c0; }
+      /* Balance bar */
+      .balance-bar {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+        background: rgba(255, 64, 192, 0.08);
+        border: 1px solid rgba(255, 64, 192, 0.25);
+        border-radius: 4px;
+        padding: 0.6rem 1rem;
+        margin-bottom: 1.5rem;
+        font-family: "VT323", monospace;
+        font-size: 1.3rem;
+      }
+      .balance-bar span {
+        color: #ffe600;
+      }
+      .balance-bar .dig {
+        color: #ff40c0;
+      }
 
-    /* ── ROULETTE ── */
-    #roulette-wheel-canvas { display:block; margin:0 auto; }
-    .bet-row { display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.8rem 0; }
-    .bet-btn {
-      font-family:'VT323',monospace; font-size:1.2rem;
-      padding:6px 14px; border:2px solid rgba(255,64,192,0.5);
-      background:rgba(255,64,192,0.08); color:#f0e0f8;
-      cursor:pointer; border-radius:3px; transition:all 0.12s;
-    }
-    .bet-btn:hover { background:rgba(255,64,192,0.22); border-color:#ff40c0; color:#fff; }
-    .bet-btn.active { background:rgba(255,64,192,0.35); border-color:#ff40c0; color:#fff; box-shadow:0 0 8px rgba(255,64,192,0.4); }
-    .bet-btn:disabled { opacity:0.35; cursor:default; }
-    .amount-row { display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.5rem 0; }
-    .amount-btn {
-      font-family:'VT323',monospace; font-size:1.1rem;
-      padding:4px 12px; border:2px solid rgba(255,220,0,0.4);
-      background:rgba(255,220,0,0.07); color:#ffe600;
-      cursor:pointer; border-radius:3px; transition:all 0.12s;
-    }
-    .amount-btn:hover { background:rgba(255,220,0,0.2); border-color:#ffe600; }
-    .amount-btn.active { background:rgba(255,220,0,0.3); border-color:#ffe600; box-shadow:0 0 6px rgba(255,220,0,0.3); }
-    .spin-btn {
-      width:100%; margin-top:1rem;
-      font-family:'Bebas Neue',sans-serif; font-size:1.8rem;
-      letter-spacing:0.1em; padding:10px;
-      border:3px solid #ff40c0; background:#ff40c0;
-      color:#0e0010; cursor:pointer; transition:all 0.12s;
-    }
-    .spin-btn:hover { background:#ff60d0; border-color:#ff60d0; }
-    .spin-btn:disabled { opacity:0.35; cursor:default; }
-    #roulette-result {
-      min-height:2.5rem; text-align:center;
-      font-family:'Permanent Marker',cursive; font-size:1.3rem;
-      color:#ffe600; margin-top:0.8rem;
-    }
+      /* ── ROULETTE ── */
+      #roulette-wheel-canvas {
+        display: block;
+        margin: 0 auto;
+      }
+      .bet-row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin: 0.8rem 0;
+      }
+      .bet-btn {
+        font-family: "VT323", monospace;
+        font-size: 1.2rem;
+        padding: 6px 14px;
+        border: 2px solid rgba(255, 64, 192, 0.5);
+        background: rgba(255, 64, 192, 0.08);
+        color: #f0e0f8;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: all 0.12s;
+      }
+      .bet-btn:hover {
+        background: rgba(255, 64, 192, 0.22);
+        border-color: #ff40c0;
+        color: #fff;
+      }
+      .bet-btn.active {
+        background: rgba(255, 64, 192, 0.35);
+        border-color: #ff40c0;
+        color: #fff;
+        box-shadow: 0 0 8px rgba(255, 64, 192, 0.4);
+      }
+      .bet-btn:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+      .amount-row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin: 0.5rem 0;
+      }
+      .amount-btn {
+        font-family: "VT323", monospace;
+        font-size: 1.1rem;
+        padding: 4px 12px;
+        border: 2px solid rgba(255, 220, 0, 0.4);
+        background: rgba(255, 220, 0, 0.07);
+        color: #ffe600;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: all 0.12s;
+      }
+      .amount-btn:hover {
+        background: rgba(255, 220, 0, 0.2);
+        border-color: #ffe600;
+      }
+      .amount-btn.active {
+        background: rgba(255, 220, 0, 0.3);
+        border-color: #ffe600;
+        box-shadow: 0 0 6px rgba(255, 220, 0, 0.3);
+      }
+      .spin-btn {
+        width: 100%;
+        margin-top: 1rem;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.8rem;
+        letter-spacing: 0.1em;
+        padding: 10px;
+        border: 3px solid #ff40c0;
+        background: #ff40c0;
+        color: #0e0010;
+        cursor: pointer;
+        transition: all 0.12s;
+      }
+      .spin-btn:hover {
+        background: #ff60d0;
+        border-color: #ff60d0;
+      }
+      .spin-btn:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+      #roulette-result {
+        min-height: 2.5rem;
+        text-align: center;
+        font-family: "Permanent Marker", cursive;
+        font-size: 1.3rem;
+        color: #ffe600;
+        margin-top: 0.8rem;
+      }
 
-    /* ── BLACKJACK ── */
-    .cards-row {
-      display:flex; gap:10px; flex-wrap:wrap;
-      min-height:80px; align-items:flex-end;
-      margin:0.6rem 0;
-    }
-    .card {
-      width:52px; height:76px;
-      border:2px solid rgba(255,255,255,0.3);
-      border-radius:5px; display:flex;
-      align-items:center; justify-content:center;
-      flex-direction:column;
-      font-family:'Bebas Neue',sans-serif;
-      font-size:1.4rem; line-height:1;
-      background:#f0ece0; color:#1a0010;
-      box-shadow:2px 2px 4px rgba(0,0,0,0.5);
-      transition:transform 0.15s;
-      animation:cardDeal 0.2s ease-out;
-    }
-    @keyframes cardDeal { from { transform:translateY(-30px) scale(0.7); opacity:0; } to { transform:none; opacity:1; } }
-    .card.red { color:#c01820; }
-    .card.back {
-      background:linear-gradient(135deg,#1a0030 25%,#2a0050 25%,#2a0050 50%,#1a0030 50%,#1a0030 75%,#2a0050 75%);
-      background-size:12px 12px;
-      border-color:#ff40c0; color:transparent;
-    }
-    .card-suit { font-size:1.1rem; }
-    .bj-label {
-      font-family:'VT323',monospace; font-size:1rem;
-      color:rgba(255,255,255,0.45); margin-bottom:4px;
-    }
-    .bj-score {
-      font-family:'Bebas Neue',sans-serif; font-size:1.4rem; color:#ff40c0;
-      margin-bottom:0.4rem;
-    }
-    .bj-btns { display:flex; gap:0.6rem; margin-top:0.8rem; }
-    .bj-btn {
-      flex:1; font-family:'Bebas Neue',sans-serif; font-size:1.4rem;
-      letter-spacing:0.08em; padding:8px;
-      border:2px solid; cursor:pointer; transition:all 0.12s;
-    }
-    .bj-btn.hit  { border-color:#40ff80; background:rgba(64,255,128,0.12); color:#40ff80; }
-    .bj-btn.hit:hover  { background:rgba(64,255,128,0.28); }
-    .bj-btn.stand{ border-color:#ff2850; background:rgba(255,40,80,0.12); color:#ff2850; }
-    .bj-btn.stand:hover{ background:rgba(255,40,80,0.28); }
-    .bj-btn.deal { border-color:#ff40c0; background:#ff40c0; color:#0e0010; width:100%; }
-    .bj-btn.deal:hover { background:#ff60d0; }
-    .bj-btn:disabled { opacity:0.35; cursor:default; }
-    #bj-result {
-      min-height:2rem; text-align:center;
-      font-family:'Permanent Marker',cursive; font-size:1.2rem;
-      color:#ffe600; margin-top:0.6rem;
-    }
+      /* ── BLACKJACK ── */
+      .cards-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        min-height: 80px;
+        align-items: flex-end;
+        margin: 0.6rem 0;
+      }
+      .card {
+        width: 52px;
+        height: 76px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.4rem;
+        line-height: 1;
+        background: #f0ece0;
+        color: #1a0010;
+        box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        transition: transform 0.15s;
+        animation: cardDeal 0.2s ease-out;
+      }
+      @keyframes cardDeal {
+        from {
+          transform: translateY(-30px) scale(0.7);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+      .card.red {
+        color: #c01820;
+      }
+      .card.back {
+        background: linear-gradient(
+          135deg,
+          #1a0030 25%,
+          #2a0050 25%,
+          #2a0050 50%,
+          #1a0030 50%,
+          #1a0030 75%,
+          #2a0050 75%
+        );
+        background-size: 12px 12px;
+        border-color: #ff40c0;
+        color: transparent;
+      }
+      .card-suit {
+        font-size: 1.1rem;
+      }
+      .bj-label {
+        font-family: "VT323", monospace;
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.45);
+        margin-bottom: 4px;
+      }
+      .bj-score {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.4rem;
+        color: #ff40c0;
+        margin-bottom: 0.4rem;
+      }
+      .bj-btns {
+        display: flex;
+        gap: 0.6rem;
+        margin-top: 0.8rem;
+      }
+      .bj-btn {
+        flex: 1;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.4rem;
+        letter-spacing: 0.08em;
+        padding: 8px;
+        border: 2px solid;
+        cursor: pointer;
+        transition: all 0.12s;
+      }
+      .bj-btn.hit {
+        border-color: #40ff80;
+        background: rgba(64, 255, 128, 0.12);
+        color: #40ff80;
+      }
+      .bj-btn.hit:hover {
+        background: rgba(64, 255, 128, 0.28);
+      }
+      .bj-btn.stand {
+        border-color: #ff2850;
+        background: rgba(255, 40, 80, 0.12);
+        color: #ff2850;
+      }
+      .bj-btn.stand:hover {
+        background: rgba(255, 40, 80, 0.28);
+      }
+      .bj-btn.deal {
+        border-color: #ff40c0;
+        background: #ff40c0;
+        color: #0e0010;
+        width: 100%;
+      }
+      .bj-btn.deal:hover {
+        background: #ff60d0;
+      }
+      .bj-btn:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+      #bj-result {
+        min-height: 2rem;
+        text-align: center;
+        font-family: "Permanent Marker", cursive;
+        font-size: 1.2rem;
+        color: #ffe600;
+        margin-top: 0.6rem;
+      }
 
-    /* ── SLOTS ── */
-    .slots-machine {
-      background:#180020; border:3px solid rgba(255,64,192,0.5);
-      border-radius:8px; padding:1.5rem; text-align:center;
-    }
-    .slots-reels {
-      display:flex; gap:8px; justify-content:center; margin:1rem 0;
-    }
-    .reel {
-      width:72px; height:80px;
-      border:2px solid rgba(255,64,192,0.4);
-      border-radius:6px; background:#0a0012;
-      display:flex; align-items:center; justify-content:center;
-      font-size:2.4rem;
-      box-shadow:inset 0 0 12px rgba(0,0,0,0.6);
-      transition:transform 0.08s;
-      overflow:hidden; position:relative;
-    }
-    .reel.spinning { animation:reelSpin 0.1s steps(1) infinite; }
-    @keyframes reelSpin { 0%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
-    .slots-btn {
-      width:100%; font-family:'Bebas Neue',sans-serif; font-size:2rem;
-      letter-spacing:0.1em; padding:10px;
-      border:3px solid #ff40c0; background:#ff40c0;
-      color:#0e0010; cursor:pointer; transition:all 0.12s;
-      margin-top:0.5rem;
-    }
-    .slots-btn:hover { background:#ff60d0; }
-    .slots-btn:disabled { opacity:0.35; cursor:default; }
-    #slots-result {
-      min-height:2.2rem; font-family:'Permanent Marker',cursive;
-      font-size:1.3rem; color:#ffe600; margin-top:0.6rem;
-    }
-    .slots-paytable {
-      font-family:'VT323',monospace; font-size:0.95rem;
-      color:rgba(255,255,255,0.4); margin-top:0.8rem;
-      text-align:left; line-height:1.8;
-    }
+      /* ── SLOTS ── */
+      .slots-machine {
+        background: #180020;
+        border: 3px solid rgba(255, 64, 192, 0.5);
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+      }
+      .slots-reels {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin: 1rem 0;
+      }
+      .reel {
+        width: 72px;
+        height: 80px;
+        border: 2px solid rgba(255, 64, 192, 0.4);
+        border-radius: 6px;
+        background: #0a0012;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.4rem;
+        box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6);
+        transition: transform 0.08s;
+        overflow: hidden;
+        position: relative;
+      }
+      .reel.spinning {
+        animation: reelSpin 0.1s steps(1) infinite;
+      }
+      @keyframes reelSpin {
+        0% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-4px);
+        }
+      }
+      .slots-btn {
+        width: 100%;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 2rem;
+        letter-spacing: 0.1em;
+        padding: 10px;
+        border: 3px solid #ff40c0;
+        background: #ff40c0;
+        color: #0e0010;
+        cursor: pointer;
+        transition: all 0.12s;
+        margin-top: 0.5rem;
+      }
+      .slots-btn:hover {
+        background: #ff60d0;
+      }
+      .slots-btn:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+      #slots-result {
+        min-height: 2.2rem;
+        font-family: "Permanent Marker", cursive;
+        font-size: 1.3rem;
+        color: #ffe600;
+        margin-top: 0.6rem;
+      }
+      .slots-paytable {
+        font-family: "VT323", monospace;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 0.8rem;
+        text-align: left;
+        line-height: 1.8;
+      }
 
-    /* ── MENU ── */
-    .game-menu {
-      display:flex; flex-direction:column; gap:0.8rem; margin-top:1rem;
-    }
-    .menu-game-btn {
-      display:flex; align-items:center; gap:1rem;
-      padding:1rem 1.4rem;
-      border:2px solid rgba(255,64,192,0.4);
-      background:rgba(255,64,192,0.06);
-      color:#f0e0f8; cursor:pointer; transition:all 0.12s;
-      font-family:'Permanent Marker',cursive; font-size:1.2rem;
-      text-align:left;
-    }
-    .menu-game-btn:hover {
-      background:rgba(255,64,192,0.16); border-color:#ff40c0;
-      transform:translate(-3px,-2px);
-      box-shadow:3px 3px 0 rgba(255,64,192,0.3);
-    }
-    .menu-game-btn .icon { font-size:2rem; }
-    .menu-game-btn .desc { font-size:0.85rem; font-family:'IBM Plex Mono',monospace; color:rgba(255,255,255,0.4); display:block; }
-    .exit-btn {
-      margin-top:1rem;
-      font-family:'Bebas Neue',sans-serif; font-size:1.4rem;
-      letter-spacing:0.1em; padding:10px 20px;
-      border:2px solid rgba(255,255,255,0.2); background:transparent;
-      color:rgba(255,255,255,0.5); cursor:pointer; transition:all 0.12s; width:100%;
-    }
-    .exit-btn:hover { border-color:#ff40c0; color:#ff40c0; }
+      /* ── MENU ── */
+      .game-menu {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        margin-top: 1rem;
+      }
+      .menu-game-btn {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.4rem;
+        border: 2px solid rgba(255, 64, 192, 0.4);
+        background: rgba(255, 64, 192, 0.06);
+        color: #f0e0f8;
+        cursor: pointer;
+        transition: all 0.12s;
+        font-family: "Permanent Marker", cursive;
+        font-size: 1.2rem;
+        text-align: left;
+      }
+      .menu-game-btn:hover {
+        background: rgba(255, 64, 192, 0.16);
+        border-color: #ff40c0;
+        transform: translate(-3px, -2px);
+        box-shadow: 3px 3px 0 rgba(255, 64, 192, 0.3);
+      }
+      .menu-game-btn .icon {
+        font-size: 2rem;
+      }
+      .menu-game-btn .desc {
+        font-size: 0.85rem;
+        font-family: "IBM Plex Mono", monospace;
+        color: rgba(255, 255, 255, 0.4);
+        display: block;
+      }
+      .exit-btn {
+        margin-top: 1rem;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.4rem;
+        letter-spacing: 0.1em;
+        padding: 10px 20px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        background: transparent;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        transition: all 0.12s;
+        width: 100%;
+      }
+      .exit-btn:hover {
+        border-color: #ff40c0;
+        color: #ff40c0;
+      }
 
-    @keyframes blink { 50%{opacity:0} }
-  </style>
-</head>
-<body>
-<div id="fade-in"></div>
-<div class="bg-layer bg-grid" style="opacity:0.2"></div>
-<div class="bg-noise"></div>
-<div class="scanlines"></div>
-<div id="casino-wrapper">
-  <canvas id="casino-canvas"></canvas>
-  <canvas id="ui-canvas"></canvas>
-</div>
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="fade-in"></div>
+    <div class="bg-layer bg-grid" style="opacity: 0.2"></div>
+    <div class="bg-noise"></div>
+    <div class="scanlines"></div>
+    <div id="casino-wrapper">
+      <canvas id="casino-canvas"></canvas>
+      <canvas id="ui-canvas"></canvas>
+    </div>
 
-<!-- GAME PANEL (HTML overlay) -->
-<div id="game-panel">
-  <div class="panel-box" id="panel-content"></div>
-</div>
+    <!-- GAME PANEL (HTML overlay) -->
+    <div id="game-panel">
+      <div class="panel-box" id="panel-content"></div>
+    </div>
 
-<script src="../scripts/DialogSystem.js"></script>
-<script>
-'use strict';
+    <script src="../scripts/DialogSystem.js"></script>
+    <script>
+      "use strict";
 
-/* ══════════════════════════════════════════════════════════
+      /* ══════════════════════════════════════════════════════════
    CASINO.JS — Lucky Tuesday Casino
    Interior room with canvas world + HTML game panels.
    Games: Roulette, Blackjack, Slot Machine
    ══════════════════════════════════════════════════════════ */
 
-const TILE=16, SCALE=3, S=TILE*SCALE;
-const COLS=22, ROWS=16;
+      const TILE = 16,
+        SCALE = 3,
+        S = TILE * SCALE;
+      const COLS = 22,
+        ROWS = 16;
 
-/* ── State ── */
-function loadState(){ try{ return JSON.parse(localStorage.getItem('rts_state')||'{}'); }catch(e){return{};} }
-function saveState(patch){
-  try{
-    const s=loadState(); Object.assign(s,patch);
-    localStorage.setItem('rts_state',JSON.stringify(s));
-    if(patch.money!==undefined) localStorage.setItem('rts_money',String(patch.money));
-  }catch(e){}
-}
-const _S=loadState();
+      /* ── State ── */
+      function loadState() {
+        try {
+          return JSON.parse(localStorage.getItem("rts_state") || "{}");
+        } catch (e) {
+          return {};
+        }
+      }
+      function saveState(patch) {
+        try {
+          const s = loadState();
+          Object.assign(s, patch);
+          localStorage.setItem("rts_state", JSON.stringify(s));
+          if (patch.money !== undefined)
+            localStorage.setItem("rts_money", String(patch.money));
+        } catch (e) {}
+      }
+      const _S = loadState();
 
-const player={
-  tx:11, ty:13,
-  facing:'up', frame:0, frameTimer:0,
-  money:  _S.money  ?? 0,
-  dignity:_S.dignity?? 0,
-  inventory:_S.inventory??[],
-  weapon:   _S.weapon??null,
-};
+      const player = {
+        tx: 11,
+        ty: 13,
+        facing: "up",
+        frame: 0,
+        frameTimer: 0,
+        money: _S.money ?? 0,
+        dignity: _S.dignity ?? 0,
+        inventory: _S.inventory ?? [],
+        weapon: _S.weapon ?? null,
+      };
 
-/* ── Palette ── */
-const C={
-  floor:'#3a1a48', floorA:'#4a2258', floorB:'#321540',
-  carpet:'#7a1060', carpetA:'#901870', carpetB:'#620850',
-  carpetGold:'rgba(255,200,0,0.35)',
-  wall:'#2a0840', wallLit:'#3a1258',
-  ceil:'#1a0528',
-  neonPink:'rgba(255,64,192,0.9)', neonBlue:'rgba(64,128,255,0.9)',
-  neonGold:'rgba(255,200,0,0.9)',
-  tableGreen:'#1a6030', tableGreenLit:'#226838', tableFelt:'#1e6830',
-  tableRed:'#780828', tableWood:'#7a3818',
-  chipW:'#f0f0f0', chipR:'#e02020', chipB:'#2060e0', chipG:'#20b040',
-  slotBod:'#4a1068', slotScreen:'#1a0530',
-  barTop:'#6a3818', barFront:'#4a2808',
-  bottleA:'#1a6828', bottleB:'#8a3800', bottleC:'#1a3880',
-  chandelier:'#f0c020',
-  doorFr:'#6a3818', door:'#1a0830',
-  hintBg:'#ffe600', hintTx:'#1a1200',
-  npcSkin:'#c8a070',
-};
+      /* ── Palette ── */
+      const C = {
+        floor: "#3a1a48",
+        floorA: "#4a2258",
+        floorB: "#321540",
+        carpet: "#7a1060",
+        carpetA: "#901870",
+        carpetB: "#620850",
+        carpetGold: "rgba(255,200,0,0.35)",
+        wall: "#2a0840",
+        wallLit: "#3a1258",
+        ceil: "#1a0528",
+        neonPink: "rgba(255,64,192,0.9)",
+        neonBlue: "rgba(64,128,255,0.9)",
+        neonGold: "rgba(255,200,0,0.9)",
+        tableGreen: "#1a6030",
+        tableGreenLit: "#226838",
+        tableFelt: "#1e6830",
+        tableRed: "#780828",
+        tableWood: "#7a3818",
+        chipW: "#f0f0f0",
+        chipR: "#e02020",
+        chipB: "#2060e0",
+        chipG: "#20b040",
+        slotBod: "#4a1068",
+        slotScreen: "#1a0530",
+        barTop: "#6a3818",
+        barFront: "#4a2808",
+        bottleA: "#1a6828",
+        bottleB: "#8a3800",
+        bottleC: "#1a3880",
+        chandelier: "#f0c020",
+        doorFr: "#6a3818",
+        door: "#1a0830",
+        hintBg: "#ffe600",
+        hintTx: "#1a1200",
+        npcSkin: "#c8a070",
+      };
 
-/* ── Map ── (interior room)
+      /* ── Map ── (interior room)
    W=wall  F=floor  C=carpet  D=door  b=bar  _ = free floor
    Rows from top to bottom
 */
-const _F=0,_W=1,_C=2,_D=3,_b=4,_R=5; // R=roulette zone, slot zone on carpet
-const MAP=[
-  [_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W],
-  [_W,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_W],
-  [_W,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_W],
-  [_W,_b,_b,_b,_b,_b,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_b,_b,_b,_b,_W],
-  [_W,_b,_b,_b,_b,_b,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_b,_b,_b,_b,_W],
-  [_W,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_W],
-  [_W,_F,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_F,_W],
-  [_W,_F,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_F,_W],
-  [_W,_F,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_F,_W],
-  [_W,_F,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_F,_W],
-  [_W,_F,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_F,_W],
-  [_W,_F,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_C,_F,_W],
-  [_W,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_F,_W],
-  [_W,_F,_F,_F,_F,_F,_F,_F,_F,_F,_D,_D,_F,_F,_F,_F,_F,_F,_F,_F,_F,_W],
-  [_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W],
-  [_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W,_W],
-];
-const SOLID=new Set([_W,_b]);
+      const _F = 0,
+        _W = 1,
+        _C = 2,
+        _D = 3,
+        _b = 4,
+        _R = 5; // R=roulette zone, slot zone on carpet
+      const MAP = [
+        [
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+        ],
+        [
+          _W,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _W,
+        ],
+        [
+          _W,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _W,
+        ],
+        [
+          _W,
+          _b,
+          _b,
+          _b,
+          _b,
+          _b,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _b,
+          _b,
+          _b,
+          _b,
+          _W,
+        ],
+        [
+          _W,
+          _b,
+          _b,
+          _b,
+          _b,
+          _b,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _b,
+          _b,
+          _b,
+          _b,
+          _W,
+        ],
+        [
+          _W,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _W,
+        ],
+        [
+          _W,
+          _F,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _F,
+          _W,
+        ],
+        [
+          _W,
+          _F,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _F,
+          _W,
+        ],
+        [
+          _W,
+          _F,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _F,
+          _W,
+        ],
+        [
+          _W,
+          _F,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _F,
+          _W,
+        ],
+        [
+          _W,
+          _F,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _F,
+          _W,
+        ],
+        [
+          _W,
+          _F,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _C,
+          _F,
+          _W,
+        ],
+        [
+          _W,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _W,
+        ],
+        [
+          _W,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _D,
+          _D,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _F,
+          _W,
+        ],
+        [
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+        ],
+        [
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+          _W,
+        ],
+      ];
+      const SOLID = new Set([_W, _b]);
 
-/* ── Objects in the casino ── */
-const OBJECTS=[];
+      /* ── Objects in the casino ── */
+      const OBJECTS = [];
 
-let bouncerTalked=_S.casinoBouncerTalked===true;
-let croupierTalked=_S.casinoCroupierTalked===true;
+      let bouncerTalked = _S.casinoBouncerTalked === true;
+      let croupierTalked = _S.casinoCroupierTalked === true;
 
-/* BOUNCER */
-OBJECTS.push({
-  id:'bouncer', tx:10, ty:13, w:1,h:1, hx:10,hy:13,hw:1,hh:1,
-  label:'Bouncer',
-  interact(){
-    if(bouncerTalked){
-      DialogSystem.show({
-        speaker:'BOUNCER',speakerPortrait:'bouncer',playerPortrait:'normal',
-        lines:[
-          {text:'"Rules: don\'t cheat, don\'t cry, don\'t ask about the back room."',expr:'angry'},
-          {text:'"Good luck."',expr:'normal'},
-        ]
-      });return;
-    }
-    bouncerTalked=true; saveState({casinoBouncerTalked:true});
-    DialogSystem.show({
-      speaker:'BOUNCER',speakerPortrait:'bouncer',playerPortrait:'surprised',
-      lines:[
-        {text:'A wall of a man stands at the entrance.',speaker:'right'},
-        {text:'"Welcome to the Lucky Tuesday Casino."',expr:'normal'},
-        {text:'"Three rules."',expr:'angry'},
-        {text:'"One: minimum bet €1. Two: house always wins."',expr:'normal'},
-        {text:'"Three: don\'t ask about the back room."',expr:'angry'},
-        {text:'"Especially not about the pigeons."',expr:'normal'},
-        {text:'"Enjoy your evening."',expr:'normal'},
-      ]
-    });
-  },
-  draw(ctx){
-    const p=SCALE,t=Date.now();
-    ctx.save(); ctx.translate(S/2, S*0.85);
-    ctx.globalAlpha=0.15; ctx.fillStyle='#000';
-    ctx.beginPath(); ctx.ellipse(0,0,S*0.25,S*0.06,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
-    // Big legs
-    ctx.fillStyle='#0a0a14'; ctx.fillRect(-6*p,-24,5*p,14*p); ctx.fillRect(p,-24,5*p,14*p);
-    ctx.fillStyle='#050508'; ctx.fillRect(-8*p,14*p-24,6*p,3*p); ctx.fillRect(2*p,14*p-24,6*p,3*p);
-    // Massive body
-    ctx.fillStyle='#0a0a14'; ctx.fillRect(-9*p,-38,18*p,16*p);
-    ctx.fillStyle='#050508'; ctx.fillRect(-9*p,-38,5*p,10*p); ctx.fillRect(4*p,-38,5*p,10*p);
-    // Suit shine
-    ctx.fillStyle='rgba(255,64,192,0.06)'; ctx.fillRect(-9*p,-38,18*p,16*p);
-    // Arms — huge
-    ctx.fillStyle='#0a0a14'; ctx.fillRect(-14*p,-36,6*p,16*p); ctx.fillRect(8*p,-36,6*p,16*p);
-    ctx.fillStyle=C.npcSkin; ctx.fillRect(-14*p,-20,6*p,5*p); ctx.fillRect(8*p,-20,6*p,5*p);
-    // Earpiece
-    ctx.fillStyle='#c0c0c0'; ctx.fillRect(-11*p,-28,2*p,3*p);
-    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fillRect(-11*p,-28,p,p);
-    // Neck
-    ctx.fillStyle=C.npcSkin; ctx.fillRect(-3*p,-40,6*p,4*p);
-    // Head
-    ctx.fillStyle=C.npcSkin; ctx.fillRect(-7*p,-52,14*p,13*p);
-    // Buzzcut
-    ctx.fillStyle='#1a1008'; ctx.fillRect(-7*p,-56,14*p,6*p);
-    // Eyes — stern
-    ctx.fillStyle='#1a0a04'; ctx.fillRect(-5*p,-47,4*p,3*p); ctx.fillRect(p,-47,4*p,3*p);
-    ctx.fillStyle='#604030'; ctx.fillRect(-4*p,-46,2*p,2*p); ctx.fillRect(2*p,-46,2*p,2*p);
-    ctx.fillStyle='#1a0808'; ctx.fillRect(-5*p,-50,5*p,2*p); ctx.fillRect(0,-49,5*p,2*p);
-    // Stern mouth
-    ctx.fillStyle='#8a6040'; ctx.fillRect(-4*p,-42,8*p,p);
-    // Tie
-    ctx.fillStyle='#ff2850'; ctx.fillRect(-p,-38,2*p,10*p);
-    ctx.restore();
-  }
-});
+      /* BOUNCER */
+      OBJECTS.push({
+        id: "bouncer",
+        tx: 10,
+        ty: 13,
+        w: 1,
+        h: 1,
+        hx: 10,
+        hy: 13,
+        hw: 1,
+        hh: 1,
+        label: "Bouncer",
+        interact() {
+          if (bouncerTalked) {
+            DialogSystem.show({
+              speaker: "BOUNCER",
+              speakerPortrait: "bouncer",
+              playerPortrait: "normal",
+              lines: [
+                {
+                  text: "\"Rules: don't cheat, don't cry, don't ask about the back room.\"",
+                  expr: "angry",
+                },
+                { text: '"Good luck."', expr: "normal" },
+              ],
+            });
+            return;
+          }
+          bouncerTalked = true;
+          saveState({ casinoBouncerTalked: true });
+          DialogSystem.show({
+            speaker: "BOUNCER",
+            speakerPortrait: "bouncer",
+            playerPortrait: "surprised",
+            lines: [
+              {
+                text: "A wall of a man stands at the entrance.",
+                speaker: "right",
+              },
+              {
+                text: '"Welcome to the Lucky Tuesday Casino."',
+                expr: "normal",
+              },
+              { text: '"Three rules."', expr: "angry" },
+              {
+                text: '"One: minimum bet €1. Two: house always wins."',
+                expr: "normal",
+              },
+              {
+                text: '"Three: don\'t ask about the back room."',
+                expr: "angry",
+              },
+              { text: '"Especially not about the pigeons."', expr: "normal" },
+              { text: '"Enjoy your evening."', expr: "normal" },
+            ],
+          });
+        },
+        draw(ctx) {
+          const p = SCALE,
+            t = Date.now();
+          ctx.save();
+          ctx.translate(S / 2, S * 0.85);
+          ctx.globalAlpha = 0.15;
+          ctx.fillStyle = "#000";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, S * 0.25, S * 0.06, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          // Big legs
+          ctx.fillStyle = "#0a0a14";
+          ctx.fillRect(-6 * p, -24, 5 * p, 14 * p);
+          ctx.fillRect(p, -24, 5 * p, 14 * p);
+          ctx.fillStyle = "#050508";
+          ctx.fillRect(-8 * p, 14 * p - 24, 6 * p, 3 * p);
+          ctx.fillRect(2 * p, 14 * p - 24, 6 * p, 3 * p);
+          // Massive body
+          ctx.fillStyle = "#0a0a14";
+          ctx.fillRect(-9 * p, -38, 18 * p, 16 * p);
+          ctx.fillStyle = "#050508";
+          ctx.fillRect(-9 * p, -38, 5 * p, 10 * p);
+          ctx.fillRect(4 * p, -38, 5 * p, 10 * p);
+          // Suit shine
+          ctx.fillStyle = "rgba(255,64,192,0.06)";
+          ctx.fillRect(-9 * p, -38, 18 * p, 16 * p);
+          // Arms — huge
+          ctx.fillStyle = "#0a0a14";
+          ctx.fillRect(-14 * p, -36, 6 * p, 16 * p);
+          ctx.fillRect(8 * p, -36, 6 * p, 16 * p);
+          ctx.fillStyle = C.npcSkin;
+          ctx.fillRect(-14 * p, -20, 6 * p, 5 * p);
+          ctx.fillRect(8 * p, -20, 6 * p, 5 * p);
+          // Earpiece
+          ctx.fillStyle = "#c0c0c0";
+          ctx.fillRect(-11 * p, -28, 2 * p, 3 * p);
+          ctx.fillStyle = "rgba(255,255,255,0.5)";
+          ctx.fillRect(-11 * p, -28, p, p);
+          // Neck
+          ctx.fillStyle = C.npcSkin;
+          ctx.fillRect(-3 * p, -40, 6 * p, 4 * p);
+          // Head
+          ctx.fillStyle = C.npcSkin;
+          ctx.fillRect(-7 * p, -52, 14 * p, 13 * p);
+          // Buzzcut
+          ctx.fillStyle = "#1a1008";
+          ctx.fillRect(-7 * p, -56, 14 * p, 6 * p);
+          // Eyes — stern
+          ctx.fillStyle = "#1a0a04";
+          ctx.fillRect(-5 * p, -47, 4 * p, 3 * p);
+          ctx.fillRect(p, -47, 4 * p, 3 * p);
+          ctx.fillStyle = "#604030";
+          ctx.fillRect(-4 * p, -46, 2 * p, 2 * p);
+          ctx.fillRect(2 * p, -46, 2 * p, 2 * p);
+          ctx.fillStyle = "#1a0808";
+          ctx.fillRect(-5 * p, -50, 5 * p, 2 * p);
+          ctx.fillRect(0, -49, 5 * p, 2 * p);
+          // Stern mouth
+          ctx.fillStyle = "#8a6040";
+          ctx.fillRect(-4 * p, -42, 8 * p, p);
+          // Tie
+          ctx.fillStyle = "#ff2850";
+          ctx.fillRect(-p, -38, 2 * p, 10 * p);
+          ctx.restore();
+        },
+      });
 
-/* CROUPIER */
-OBJECTS.push({
-  id:'croupier', tx:11, ty:7, w:1,h:1, hx:11,hy:7,hw:1,hh:1,
-  label:'Croupier — Marcel',
-  interact(){ openCasinoMenu(); },
-  draw(ctx){
-    const p=SCALE,t=Date.now();
-    const bob=Math.sin(t/900)*p*0.5;
-    ctx.save(); ctx.translate(S/2, S*0.8+bob);
-    ctx.globalAlpha=0.12; ctx.fillStyle='#000';
-    ctx.beginPath(); ctx.ellipse(0,0,S*0.2,S*0.05,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
-    // Legs
-    ctx.fillStyle='#0e0820'; ctx.fillRect(-4*p,-18,3*p,9*p); ctx.fillRect(p,-18,3*p,9*p);
-    ctx.fillStyle='#040408'; ctx.fillRect(-5*p,-9,5*p,3*p); ctx.fillRect(p,-9,5*p,3*p);
-    // Waistcoat
-    ctx.fillStyle='#14082a'; ctx.fillRect(-7*p,-30,14*p,14*p);
-    ctx.fillStyle='#1e0e38'; ctx.fillRect(-7*p,-30,4*p,10*p); ctx.fillRect(3*p,-30,4*p,10*p);
-    // Gold buttons
-    ctx.fillStyle='#c8a020';
-    for(let i=0;i<3;i++) ctx.fillRect(-p,-28+i*4*p,2*p,2*p);
-    // White shirt
-    ctx.fillStyle='#e8e0f0'; ctx.fillRect(-3*p,-30,6*p,12*p);
-    // Bow tie
-    ctx.fillStyle='#ff40c0'; ctx.fillRect(-3*p,-28,3*p,2*p); ctx.fillRect(0,-28,3*p,2*p);
-    ctx.fillRect(-p,-29,2*p,4*p);
-    // Arms
-    ctx.fillStyle='#14082a'; ctx.fillRect(-11*p,-28,5*p,12*p); ctx.fillRect(6*p,-28,5*p,12*p);
-    ctx.fillStyle='#e8e0f0'; ctx.fillRect(-11*p,-18,5*p,3*p); ctx.fillRect(6*p,-18,5*p,3*p); // cuffs
-    ctx.fillStyle=C.npcSkin; ctx.fillRect(-11*p,-16,5*p,4*p); ctx.fillRect(6*p,-16,5*p,4*p);
-    // Neck
-    ctx.fillStyle=C.npcSkin; ctx.fillRect(-2*p,-32,4*p,3*p);
-    // Head — slicked hair, thin moustache
-    ctx.fillStyle=C.npcSkin; ctx.fillRect(-5*p,-44,10*p,12*p);
-    ctx.fillStyle='#0a0810'; ctx.fillRect(-5*p,-48,10*p,6*p);
-    ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.fillRect(-4*p,-48,5*p,2*p);
-    // Eyes
-    ctx.fillStyle='#1a0a18'; ctx.fillRect(-4*p,-39,3*p,3*p); ctx.fillRect(p,-39,3*p,3*p);
-    ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.fillRect(-4*p,-40,p,p); ctx.fillRect(p,-40,p,p);
-    // Thin moustache
-    ctx.fillStyle='#0a0810'; ctx.fillRect(-3*p,-35,6*p,p);
-    // Smile
-    ctx.fillStyle='#b09070'; ctx.fillRect(-2*p,-33,4*p,p);
-    ctx.fillRect(-3*p,-32,2*p,p); ctx.fillRect(p,-32,2*p,p);
-    // Floating "PLACE YOUR BETS"
-    ctx.globalAlpha=0.5+0.4*Math.sin(t/600);
-    ctx.fillStyle='#ff40c0'; ctx.font=`${p*2.5}px "VT323",monospace`;
-    ctx.textAlign='center'; ctx.fillText('PLACE BETS',0,-52);
-    ctx.globalAlpha=1;
-    ctx.restore();
-  }
-});
+      /* CROUPIER */
+      OBJECTS.push({
+        id: "croupier",
+        tx: 11,
+        ty: 7,
+        w: 1,
+        h: 1,
+        hx: 11,
+        hy: 7,
+        hw: 1,
+        hh: 1,
+        label: "Croupier — Marcel",
+        interact() {
+          openCasinoMenu();
+        },
+        draw(ctx) {
+          const p = SCALE,
+            t = Date.now();
+          const bob = Math.sin(t / 900) * p * 0.5;
+          ctx.save();
+          ctx.translate(S / 2, S * 0.8 + bob);
+          ctx.globalAlpha = 0.12;
+          ctx.fillStyle = "#000";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, S * 0.2, S * 0.05, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          // Legs
+          ctx.fillStyle = "#0e0820";
+          ctx.fillRect(-4 * p, -18, 3 * p, 9 * p);
+          ctx.fillRect(p, -18, 3 * p, 9 * p);
+          ctx.fillStyle = "#040408";
+          ctx.fillRect(-5 * p, -9, 5 * p, 3 * p);
+          ctx.fillRect(p, -9, 5 * p, 3 * p);
+          // Waistcoat
+          ctx.fillStyle = "#14082a";
+          ctx.fillRect(-7 * p, -30, 14 * p, 14 * p);
+          ctx.fillStyle = "#1e0e38";
+          ctx.fillRect(-7 * p, -30, 4 * p, 10 * p);
+          ctx.fillRect(3 * p, -30, 4 * p, 10 * p);
+          // Gold buttons
+          ctx.fillStyle = "#c8a020";
+          for (let i = 0; i < 3; i++)
+            ctx.fillRect(-p, -28 + i * 4 * p, 2 * p, 2 * p);
+          // White shirt
+          ctx.fillStyle = "#e8e0f0";
+          ctx.fillRect(-3 * p, -30, 6 * p, 12 * p);
+          // Bow tie
+          ctx.fillStyle = "#ff40c0";
+          ctx.fillRect(-3 * p, -28, 3 * p, 2 * p);
+          ctx.fillRect(0, -28, 3 * p, 2 * p);
+          ctx.fillRect(-p, -29, 2 * p, 4 * p);
+          // Arms
+          ctx.fillStyle = "#14082a";
+          ctx.fillRect(-11 * p, -28, 5 * p, 12 * p);
+          ctx.fillRect(6 * p, -28, 5 * p, 12 * p);
+          ctx.fillStyle = "#e8e0f0";
+          ctx.fillRect(-11 * p, -18, 5 * p, 3 * p);
+          ctx.fillRect(6 * p, -18, 5 * p, 3 * p); // cuffs
+          ctx.fillStyle = C.npcSkin;
+          ctx.fillRect(-11 * p, -16, 5 * p, 4 * p);
+          ctx.fillRect(6 * p, -16, 5 * p, 4 * p);
+          // Neck
+          ctx.fillStyle = C.npcSkin;
+          ctx.fillRect(-2 * p, -32, 4 * p, 3 * p);
+          // Head — slicked hair, thin moustache
+          ctx.fillStyle = C.npcSkin;
+          ctx.fillRect(-5 * p, -44, 10 * p, 12 * p);
+          ctx.fillStyle = "#0a0810";
+          ctx.fillRect(-5 * p, -48, 10 * p, 6 * p);
+          ctx.fillStyle = "rgba(255,255,255,0.1)";
+          ctx.fillRect(-4 * p, -48, 5 * p, 2 * p);
+          // Eyes
+          ctx.fillStyle = "#1a0a18";
+          ctx.fillRect(-4 * p, -39, 3 * p, 3 * p);
+          ctx.fillRect(p, -39, 3 * p, 3 * p);
+          ctx.fillStyle = "rgba(255,255,255,0.7)";
+          ctx.fillRect(-4 * p, -40, p, p);
+          ctx.fillRect(p, -40, p, p);
+          // Thin moustache
+          ctx.fillStyle = "#0a0810";
+          ctx.fillRect(-3 * p, -35, 6 * p, p);
+          // Smile
+          ctx.fillStyle = "#b09070";
+          ctx.fillRect(-2 * p, -33, 4 * p, p);
+          ctx.fillRect(-3 * p, -32, 2 * p, p);
+          ctx.fillRect(p, -32, 2 * p, p);
+          // Floating "PLACE YOUR BETS"
+          ctx.globalAlpha = 0.5 + 0.4 * Math.sin(t / 600);
+          ctx.fillStyle = "#ff40c0";
+          ctx.font = `${p * 2.5}px "VT323",monospace`;
+          ctx.textAlign = "center";
+          ctx.fillText("PLACE BETS", 0, -52);
+          ctx.globalAlpha = 1;
+          ctx.restore();
+        },
+      });
 
-/* SLOT MACHINE */
-OBJECTS.push({
-  id:'slots1', tx:3, ty:7, w:2,h:2, hx:3,hy:7,hw:2,hh:2,
-  label:'Lucky Tuesday Slots',
-  interact(){ openPanel('slots'); },
-  draw(ctx){
-    const p=SCALE,t=Date.now();
-    // Cabinet — bright purple
-    ctx.fillStyle='#5a1880'; ctx.fillRect(0,0,2*S,2*S);
-    ctx.fillStyle='#6a2090'; ctx.fillRect(SCALE*2,SCALE*2,2*S-SCALE*4,2*S-SCALE*4);
-    ctx.fillStyle='#7a28a0'; ctx.fillRect(0,0,2*S,SCALE*4); // top
-    // Screen — dark but visible
-    ctx.fillStyle='#1a0838'; ctx.fillRect(SCALE*3,SCALE*4,2*S-SCALE*6,S-SCALE*2);
-    // Reels
-    const reelEmojis=['🍒','💎','7️⃣','🃏'];
-    for(let r=0;r<3;r++){
-      const rx=SCALE*4+r*(S-SCALE*2)/3;
-      const ry=SCALE*5;
-      ctx.fillStyle='#280848'; ctx.fillRect(rx,ry,S/3-SCALE,S*0.7);
-      ctx.font=`${SCALE*4}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(reelEmojis[Math.floor((t/200+r*7)%reelEmojis.length)], rx+S/6-SCALE/2, ry+S*0.35);
-    }
-    // Neon border
-    const nc=0.6+0.4*Math.sin(t/300);
-    ctx.strokeStyle=`rgba(255,64,192,${nc})`; ctx.lineWidth=SCALE;
-    ctx.strokeRect(SCALE,SCALE,2*S-SCALE*2,2*S-SCALE*2);
-    // Lever
-    ctx.fillStyle='#c0a020'; ctx.fillRect(2*S-SCALE*3,S*0.6,SCALE*2,S*0.7);
-    ctx.fillStyle='#ff4040'; ctx.beginPath(); ctx.arc(2*S-SCALE*2,S*0.55,SCALE*2,0,Math.PI*2); ctx.fill();
-    // Label
-    ctx.fillStyle='#ff40c0'; ctx.font=`bold ${SCALE*2}px monospace`;
-    ctx.textAlign='center'; ctx.fillText('LUCKY TUE',S,S*1.7);
-  }
-});
+      /* SLOT MACHINE */
+      OBJECTS.push({
+        id: "slots1",
+        tx: 3,
+        ty: 7,
+        w: 2,
+        h: 2,
+        hx: 3,
+        hy: 7,
+        hw: 2,
+        hh: 2,
+        label: "Lucky Tuesday Slots",
+        interact() {
+          openPanel("slots");
+        },
+        draw(ctx) {
+          const p = SCALE,
+            t = Date.now();
+          // Cabinet — bright purple
+          ctx.fillStyle = "#5a1880";
+          ctx.fillRect(0, 0, 2 * S, 2 * S);
+          ctx.fillStyle = "#6a2090";
+          ctx.fillRect(
+            SCALE * 2,
+            SCALE * 2,
+            2 * S - SCALE * 4,
+            2 * S - SCALE * 4
+          );
+          ctx.fillStyle = "#7a28a0";
+          ctx.fillRect(0, 0, 2 * S, SCALE * 4); // top
+          // Screen — dark but visible
+          ctx.fillStyle = "#1a0838";
+          ctx.fillRect(SCALE * 3, SCALE * 4, 2 * S - SCALE * 6, S - SCALE * 2);
+          // Reels
+          const reelEmojis = ["🍒", "💎", "7️⃣", "🃏"];
+          for (let r = 0; r < 3; r++) {
+            const rx = SCALE * 4 + (r * (S - SCALE * 2)) / 3;
+            const ry = SCALE * 5;
+            ctx.fillStyle = "#280848";
+            ctx.fillRect(rx, ry, S / 3 - SCALE, S * 0.7);
+            ctx.font = `${SCALE * 4}px monospace`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(
+              reelEmojis[Math.floor((t / 200 + r * 7) % reelEmojis.length)],
+              rx + S / 6 - SCALE / 2,
+              ry + S * 0.35
+            );
+          }
+          // Neon border
+          const nc = 0.6 + 0.4 * Math.sin(t / 300);
+          ctx.strokeStyle = `rgba(255,64,192,${nc})`;
+          ctx.lineWidth = SCALE;
+          ctx.strokeRect(SCALE, SCALE, 2 * S - SCALE * 2, 2 * S - SCALE * 2);
+          // Lever
+          ctx.fillStyle = "#c0a020";
+          ctx.fillRect(2 * S - SCALE * 3, S * 0.6, SCALE * 2, S * 0.7);
+          ctx.fillStyle = "#ff4040";
+          ctx.beginPath();
+          ctx.arc(2 * S - SCALE * 2, S * 0.55, SCALE * 2, 0, Math.PI * 2);
+          ctx.fill();
+          // Label
+          ctx.fillStyle = "#ff40c0";
+          ctx.font = `bold ${SCALE * 2}px monospace`;
+          ctx.textAlign = "center";
+          ctx.fillText("LUCKY TUE", S, S * 1.7);
+        },
+      });
 
-/* SLOT MACHINE 2 */
-OBJECTS.push({
-  id:'slots2', tx:17, ty:7, w:2,h:2, hx:17,hy:7,hw:2,hh:2,
-  label:'Jackpot Machine',
-  interact(){ openPanel('slots'); },
-  draw(ctx){
-    const p=SCALE,t=Date.now()+500;
-    ctx.fillStyle='#183060'; ctx.fillRect(0,0,2*S,2*S);
-    ctx.fillStyle='#204070'; ctx.fillRect(SCALE*2,SCALE*2,2*S-SCALE*4,2*S-SCALE*4);
-    ctx.fillStyle='#285080'; ctx.fillRect(0,0,2*S,SCALE*4);
-    ctx.fillStyle='#181840'; ctx.fillRect(SCALE*3,SCALE*4,2*S-SCALE*6,S-SCALE*2);
-    const reelEmojis=['💰','⭐','🔔','🎲'];
-    for(let r=0;r<3;r++){
-      const rx=SCALE*4+r*(S-SCALE*2)/3;
-      const ry=SCALE*5;
-      ctx.fillStyle='#101030'; ctx.fillRect(rx,ry,S/3-SCALE,S*0.7);
-      ctx.font=`${SCALE*4}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(reelEmojis[Math.floor((t/180+r*5)%reelEmojis.length)],rx+S/6-SCALE/2,ry+S*0.35);
-    }
-    const nc=0.6+0.4*Math.sin(t/250);
-    ctx.strokeStyle=`rgba(64,128,255,${nc})`; ctx.lineWidth=SCALE;
-    ctx.strokeRect(SCALE,SCALE,2*S-SCALE*2,2*S-SCALE*2);
-    ctx.fillStyle='#4080ff'; ctx.fillRect(2*S-SCALE*3,S*0.6,SCALE*2,S*0.7);
-    ctx.fillStyle='#40ff80'; ctx.beginPath(); ctx.arc(2*S-SCALE*2,S*0.55,SCALE*2,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#4080ff'; ctx.font=`bold ${SCALE*2}px monospace`;
-    ctx.textAlign='center'; ctx.fillText('JACKPOT',S,S*1.7);
-  }
-});
+      /* SLOT MACHINE 2 */
+      OBJECTS.push({
+        id: "slots2",
+        tx: 17,
+        ty: 7,
+        w: 2,
+        h: 2,
+        hx: 17,
+        hy: 7,
+        hw: 2,
+        hh: 2,
+        label: "Jackpot Machine",
+        interact() {
+          openPanel("slots");
+        },
+        draw(ctx) {
+          const p = SCALE,
+            t = Date.now() + 500;
+          ctx.fillStyle = "#183060";
+          ctx.fillRect(0, 0, 2 * S, 2 * S);
+          ctx.fillStyle = "#204070";
+          ctx.fillRect(
+            SCALE * 2,
+            SCALE * 2,
+            2 * S - SCALE * 4,
+            2 * S - SCALE * 4
+          );
+          ctx.fillStyle = "#285080";
+          ctx.fillRect(0, 0, 2 * S, SCALE * 4);
+          ctx.fillStyle = "#181840";
+          ctx.fillRect(SCALE * 3, SCALE * 4, 2 * S - SCALE * 6, S - SCALE * 2);
+          const reelEmojis = ["💰", "⭐", "🔔", "🎲"];
+          for (let r = 0; r < 3; r++) {
+            const rx = SCALE * 4 + (r * (S - SCALE * 2)) / 3;
+            const ry = SCALE * 5;
+            ctx.fillStyle = "#101030";
+            ctx.fillRect(rx, ry, S / 3 - SCALE, S * 0.7);
+            ctx.font = `${SCALE * 4}px monospace`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(
+              reelEmojis[Math.floor((t / 180 + r * 5) % reelEmojis.length)],
+              rx + S / 6 - SCALE / 2,
+              ry + S * 0.35
+            );
+          }
+          const nc = 0.6 + 0.4 * Math.sin(t / 250);
+          ctx.strokeStyle = `rgba(64,128,255,${nc})`;
+          ctx.lineWidth = SCALE;
+          ctx.strokeRect(SCALE, SCALE, 2 * S - SCALE * 2, 2 * S - SCALE * 2);
+          ctx.fillStyle = "#4080ff";
+          ctx.fillRect(2 * S - SCALE * 3, S * 0.6, SCALE * 2, S * 0.7);
+          ctx.fillStyle = "#40ff80";
+          ctx.beginPath();
+          ctx.arc(2 * S - SCALE * 2, S * 0.55, SCALE * 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#4080ff";
+          ctx.font = `bold ${SCALE * 2}px monospace`;
+          ctx.textAlign = "center";
+          ctx.fillText("JACKPOT", S, S * 1.7);
+        },
+      });
 
-/* ROULETTE TABLE */
-OBJECTS.push({
-  id:'roulette', tx:6, ty:8, w:6,h:3, hx:6,hy:8,hw:6,hh:3,
-  label:'Roulette Table',
-  interact(){ openPanel('roulette'); },
-  draw(ctx){
-    const p=SCALE,t=Date.now();
-    // Table body
-    ctx.fillStyle=C.tableWood; ctx.fillRect(0,0,6*S,3*S);
-    ctx.fillStyle=C.tableWood+'aa'; ctx.fillRect(SCALE*2,SCALE*2,6*S-SCALE*4,3*S-SCALE*4);
-    // Felt
-    ctx.fillStyle=C.tableGreen; ctx.fillRect(SCALE*3,SCALE*3,6*S-SCALE*6,3*S-SCALE*6);
-    ctx.fillStyle=C.tableFelt; ctx.fillRect(SCALE*4,SCALE*4,6*S-SCALE*8,3*S-SCALE*8);
-    // Wheel
-    const wx=S*1.5, wy=S*1.5, wr=S*0.75;
-    for(let i=0;i<37;i++){
-      const a=(t/3000+i/37)*Math.PI*2;
-      ctx.fillStyle=i===0?'#3a8028':(i%2===0?'#c01818':'#0a0a18');
-      ctx.beginPath(); ctx.moveTo(wx,wy);
-      ctx.arc(wx,wy,wr,a,a+Math.PI*2/37); ctx.closePath(); ctx.fill();
-    }
-    ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(wx,wy,wr*0.25,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#c8a020'; ctx.beginPath(); ctx.arc(wx,wy,wr*0.12,0,Math.PI*2); ctx.fill();
-    // Ball
-    const ba=t/1800;
-    const bx=wx+Math.cos(ba)*wr*0.65, by=wy+Math.sin(ba)*wr*0.65;
-    ctx.fillStyle='#f8f8f8'; ctx.beginPath(); ctx.arc(bx,by,SCALE*1.2,0,Math.PI*2); ctx.fill();
-    // Betting grid
-    const gx=S*3.2, gy=S*0.4;
-    for(let row=0;row<3;row++) for(let col=0;col<4;col++){
-      ctx.fillStyle=`rgba(${row===0?'200,30,30':row===1?'30,80,200':'30,30,30'},0.3)`;
-      ctx.fillRect(gx+col*S*0.7,gy+row*S*0.6,S*0.65,S*0.55);
-      ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1;
-      ctx.strokeRect(gx+col*S*0.7,gy+row*S*0.6,S*0.65,S*0.55);
-    }
-    // Label
-    ctx.fillStyle='rgba(255,64,192,0.7)'; ctx.font=`bold ${SCALE*2.5}px "VT323",monospace`;
-    ctx.textAlign='center'; ctx.fillText('ROULETTE',3*S,3*S-SCALE*3);
-  }
-});
+      /* ROULETTE TABLE */
+      OBJECTS.push({
+        id: "roulette",
+        tx: 6,
+        ty: 8,
+        w: 6,
+        h: 3,
+        hx: 6,
+        hy: 8,
+        hw: 6,
+        hh: 3,
+        label: "Roulette Table",
+        interact() {
+          openPanel("roulette");
+        },
+        draw(ctx) {
+          const p = SCALE,
+            t = Date.now();
+          // Table body
+          ctx.fillStyle = C.tableWood;
+          ctx.fillRect(0, 0, 6 * S, 3 * S);
+          ctx.fillStyle = C.tableWood + "aa";
+          ctx.fillRect(
+            SCALE * 2,
+            SCALE * 2,
+            6 * S - SCALE * 4,
+            3 * S - SCALE * 4
+          );
+          // Felt
+          ctx.fillStyle = C.tableGreen;
+          ctx.fillRect(
+            SCALE * 3,
+            SCALE * 3,
+            6 * S - SCALE * 6,
+            3 * S - SCALE * 6
+          );
+          ctx.fillStyle = C.tableFelt;
+          ctx.fillRect(
+            SCALE * 4,
+            SCALE * 4,
+            6 * S - SCALE * 8,
+            3 * S - SCALE * 8
+          );
+          // Wheel
+          const wx = S * 1.5,
+            wy = S * 1.5,
+            wr = S * 0.75;
+          for (let i = 0; i < 37; i++) {
+            const a = (t / 3000 + i / 37) * Math.PI * 2;
+            ctx.fillStyle =
+              i === 0 ? "#3a8028" : i % 2 === 0 ? "#c01818" : "#0a0a18";
+            ctx.beginPath();
+            ctx.moveTo(wx, wy);
+            ctx.arc(wx, wy, wr, a, a + (Math.PI * 2) / 37);
+            ctx.closePath();
+            ctx.fill();
+          }
+          ctx.fillStyle = "rgba(0,0,0,0.5)";
+          ctx.beginPath();
+          ctx.arc(wx, wy, wr * 0.25, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#c8a020";
+          ctx.beginPath();
+          ctx.arc(wx, wy, wr * 0.12, 0, Math.PI * 2);
+          ctx.fill();
+          // Ball
+          const ba = t / 1800;
+          const bx = wx + Math.cos(ba) * wr * 0.65,
+            by = wy + Math.sin(ba) * wr * 0.65;
+          ctx.fillStyle = "#f8f8f8";
+          ctx.beginPath();
+          ctx.arc(bx, by, SCALE * 1.2, 0, Math.PI * 2);
+          ctx.fill();
+          // Betting grid
+          const gx = S * 3.2,
+            gy = S * 0.4;
+          for (let row = 0; row < 3; row++)
+            for (let col = 0; col < 4; col++) {
+              ctx.fillStyle = `rgba(${
+                row === 0 ? "200,30,30" : row === 1 ? "30,80,200" : "30,30,30"
+              },0.3)`;
+              ctx.fillRect(
+                gx + col * S * 0.7,
+                gy + row * S * 0.6,
+                S * 0.65,
+                S * 0.55
+              );
+              ctx.strokeStyle = "rgba(255,255,255,0.15)";
+              ctx.lineWidth = 1;
+              ctx.strokeRect(
+                gx + col * S * 0.7,
+                gy + row * S * 0.6,
+                S * 0.65,
+                S * 0.55
+              );
+            }
+          // Label
+          ctx.fillStyle = "rgba(255,64,192,0.7)";
+          ctx.font = `bold ${SCALE * 2.5}px "VT323",monospace`;
+          ctx.textAlign = "center";
+          ctx.fillText("ROULETTE", 3 * S, 3 * S - SCALE * 3);
+        },
+      });
 
-/* BLACKJACK TABLE */
-OBJECTS.push({
-  id:'blackjack', tx:11, ty:8, w:6,h:3, hx:11,hy:8,hw:6,hh:3,
-  label:'Blackjack Table',
-  interact(){ openPanel('blackjack'); },
-  draw(ctx){
-    const p=SCALE,t=Date.now();
-    ctx.fillStyle=C.tableWood; ctx.fillRect(0,0,6*S,3*S);
-    ctx.fillStyle=C.tableRed; ctx.fillRect(SCALE*3,SCALE*3,6*S-SCALE*6,3*S-SCALE*6);
-    // Semicircle felt
-    ctx.fillStyle='#3a0020'; ctx.beginPath();
-    ctx.ellipse(3*S,2*S,2.5*S,1.8*S,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle=C.tableRed;
-    ctx.beginPath(); ctx.ellipse(3*S,2*S,2.2*S,1.5*S,0,0,Math.PI*2); ctx.fill();
-    // Card positions
-    for(let i=0;i<5;i++){
-      const cx=S*0.6+i*S; const cy=S*0.8;
-      ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fillRect(cx,cy,S*0.6,S*0.8);
-      ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1;
-      ctx.strokeRect(cx,cy,S*0.6,S*0.8);
-    }
-    // Chip stack
-    ctx.fillStyle='#c02020'; ctx.beginPath(); ctx.arc(3*S,2.4*S,SCALE*3,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#f0f0f0'; ctx.beginPath(); ctx.arc(3*S,2.3*S,SCALE*3,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#2040c0'; ctx.beginPath(); ctx.arc(3*S,2.2*S,SCALE*3,0,Math.PI*2); ctx.fill();
-    // Label
-    ctx.fillStyle='rgba(255,64,130,0.8)'; ctx.font=`bold ${SCALE*2.5}px "VT323",monospace`;
-    ctx.textAlign='center'; ctx.fillText('BLACKJACK',3*S,3*S-SCALE*3);
-    // House pays
-    ctx.fillStyle='rgba(255,220,0,0.5)'; ctx.font=`${SCALE*2}px monospace`;
-    ctx.fillText('BJ PAYS 3:2',3*S,3*S-SCALE*8);
-  }
-});
+      /* BLACKJACK TABLE */
+      OBJECTS.push({
+        id: "blackjack",
+        tx: 11,
+        ty: 8,
+        w: 6,
+        h: 3,
+        hx: 11,
+        hy: 8,
+        hw: 6,
+        hh: 3,
+        label: "Blackjack Table",
+        interact() {
+          openPanel("blackjack");
+        },
+        draw(ctx) {
+          const p = SCALE,
+            t = Date.now();
+          ctx.fillStyle = C.tableWood;
+          ctx.fillRect(0, 0, 6 * S, 3 * S);
+          ctx.fillStyle = C.tableRed;
+          ctx.fillRect(
+            SCALE * 3,
+            SCALE * 3,
+            6 * S - SCALE * 6,
+            3 * S - SCALE * 6
+          );
+          // Semicircle felt
+          ctx.fillStyle = "#3a0020";
+          ctx.beginPath();
+          ctx.ellipse(3 * S, 2 * S, 2.5 * S, 1.8 * S, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = C.tableRed;
+          ctx.beginPath();
+          ctx.ellipse(3 * S, 2 * S, 2.2 * S, 1.5 * S, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // Card positions
+          for (let i = 0; i < 5; i++) {
+            const cx = S * 0.6 + i * S;
+            const cy = S * 0.8;
+            ctx.fillStyle = "rgba(255,255,255,0.08)";
+            ctx.fillRect(cx, cy, S * 0.6, S * 0.8);
+            ctx.strokeStyle = "rgba(255,255,255,0.2)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(cx, cy, S * 0.6, S * 0.8);
+          }
+          // Chip stack
+          ctx.fillStyle = "#c02020";
+          ctx.beginPath();
+          ctx.arc(3 * S, 2.4 * S, SCALE * 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#f0f0f0";
+          ctx.beginPath();
+          ctx.arc(3 * S, 2.3 * S, SCALE * 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#2040c0";
+          ctx.beginPath();
+          ctx.arc(3 * S, 2.2 * S, SCALE * 3, 0, Math.PI * 2);
+          ctx.fill();
+          // Label
+          ctx.fillStyle = "rgba(255,64,130,0.8)";
+          ctx.font = `bold ${SCALE * 2.5}px "VT323",monospace`;
+          ctx.textAlign = "center";
+          ctx.fillText("BLACKJACK", 3 * S, 3 * S - SCALE * 3);
+          // House pays
+          ctx.fillStyle = "rgba(255,220,0,0.5)";
+          ctx.font = `${SCALE * 2}px monospace`;
+          ctx.fillText("BJ PAYS 3:2", 3 * S, 3 * S - SCALE * 8);
+        },
+      });
 
-/* ── Game state / loop ── */
-const keys={};
-let gameState='playing';
-let exitTriggered=false;
+      /* ── Game state / loop ── */
+      const keys = {};
+      let gameState = "playing";
+      let exitTriggered = false;
 
-document.addEventListener('keydown',e=>{
-  keys[e.key.toLowerCase()]=true;
-  if(DialogSystem.isOpen()) return;
-  if(isPanelOpen()) return;
-  if(e.key.toLowerCase()==='e') tryInteract();
-  if(e.key==='Escape') tryExit();
-});
-document.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
+      document.addEventListener("keydown", (e) => {
+        keys[e.key.toLowerCase()] = true;
+        if (DialogSystem.isOpen()) return;
+        if (isPanelOpen()) return;
+        if (e.key.toLowerCase() === "e") tryInteract();
+        if (e.key === "Escape") tryExit();
+      });
+      document.addEventListener("keyup", (e) => {
+        keys[e.key.toLowerCase()] = false;
+      });
 
-let cCanvas,cCtx,uiCanvas,uiCtx;
-window.addEventListener('load',()=>{
-  const fi=document.getElementById('fade-in');
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{ fi.style.opacity='0'; }));
-  setTimeout(()=>fi.remove(),1200);
+      let cCanvas, cCtx, uiCanvas, uiCtx;
+      window.addEventListener("load", () => {
+        const fi = document.getElementById("fade-in");
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            fi.style.opacity = "0";
+          })
+        );
+        setTimeout(() => fi.remove(), 1200);
 
-  cCanvas=document.getElementById('casino-canvas');
-  uiCanvas=document.getElementById('ui-canvas');
-  cCtx=cCanvas.getContext('2d');
-  uiCtx=uiCanvas.getContext('2d');
-  cCtx.imageSmoothingEnabled=uiCtx.imageSmoothingEnabled=false;
-  resize(); window.addEventListener('resize',resize);
+        cCanvas = document.getElementById("casino-canvas");
+        uiCanvas = document.getElementById("ui-canvas");
+        cCtx = cCanvas.getContext("2d");
+        uiCtx = uiCanvas.getContext("2d");
+        cCtx.imageSmoothingEnabled = uiCtx.imageSmoothingEnabled = false;
+        resize();
+        window.addEventListener("resize", resize);
 
-  // Setup canvas size
-  cCanvas.width=COLS*S; cCanvas.height=ROWS*S;
-  const W=window.innerWidth,H=window.innerHeight;
-  const fit=Math.min((W-8)/(COLS*S),(H-56)/(ROWS*S));
-  const dw=Math.round(COLS*S*fit),dh=Math.round(ROWS*S*fit);
-  cCanvas.style.width=dw+'px'; cCanvas.style.height=dh+'px';
-  cCanvas.style.left=((W-dw)/2)+'px'; cCanvas.style.top=((H-dh+56)/2)+'px';
+        // Setup canvas size
+        cCanvas.width = COLS * S;
+        cCanvas.height = ROWS * S;
+        const W = window.innerWidth,
+          H = window.innerHeight;
+        const fit = Math.min((W - 8) / (COLS * S), (H - 56) / (ROWS * S));
+        const dw = Math.round(COLS * S * fit),
+          dh = Math.round(ROWS * S * fit);
+        cCanvas.style.width = dw + "px";
+        cCanvas.style.height = dh + "px";
+        cCanvas.style.left = (W - dw) / 2 + "px";
+        cCanvas.style.top = (H - dh + 56) / 2 + "px";
 
-  setTimeout(()=>{
-    DialogSystem.show({
-      speaker:'NARRATOR',speakerPortrait:'unknown',playerPortrait:'surprised',
-      lines:[
-        {text:'LUCKY TUESDAY CASINO.',speaker:'right'},
-        {text:'The air smells of desperation and cheap perfume.',speaker:'right'},
-        {text:'"Everything in here is designed to take your money."',speaker:'left',expr:'surprised'},
-        {text:'"...I\'m going to give them all my money."',speaker:'left',expr:'happy'},
-      ]
-    });
-  },600);
+        setTimeout(() => {
+          DialogSystem.show({
+            speaker: "NARRATOR",
+            speakerPortrait: "unknown",
+            playerPortrait: "surprised",
+            lines: [
+              { text: "LUCKY TUESDAY CASINO.", speaker: "right" },
+              {
+                text: "The air smells of desperation and cheap perfume.",
+                speaker: "right",
+              },
+              {
+                text: '"Everything in here is designed to take your money."',
+                speaker: "left",
+                expr: "surprised",
+              },
+              {
+                text: '"...I\'m going to give them all my money."',
+                speaker: "left",
+                expr: "happy",
+              },
+            ],
+          });
+        }, 600);
 
-  requestAnimationFrame(loop);
-});
+        requestAnimationFrame(loop);
+      });
 
-function resize(){
-  const W=window.innerWidth,H=window.innerHeight;
-  uiCanvas.width=W; uiCanvas.height=H;
-  uiCanvas.style.width=W+'px'; uiCanvas.style.height=H+'px';
-}
+      function resize() {
+        const W = window.innerWidth,
+          H = window.innerHeight;
+        uiCanvas.width = W;
+        uiCanvas.height = H;
+        uiCanvas.style.width = W + "px";
+        uiCanvas.style.height = H + "px";
+      }
 
-let lastTime=0;
-function loop(ts){
-  const dt=Math.min((ts-lastTime)/1000,0.05); lastTime=ts;
-  if(gameState==='playing'&&!DialogSystem.isOpen()&&!isPanelOpen()) updatePlayer(dt);
-  draw(); drawUI();
-  requestAnimationFrame(loop);
-}
+      let lastTime = 0;
+      function loop(ts) {
+        const dt = Math.min((ts - lastTime) / 1000, 0.05);
+        lastTime = ts;
+        if (gameState === "playing" && !DialogSystem.isOpen() && !isPanelOpen())
+          updatePlayer(dt);
+        draw();
+        drawUI();
+        requestAnimationFrame(loop);
+      }
 
-const SPEED=5;
-function updatePlayer(dt){
-  let dx=0,dy=0;
-  if(keys['w']||keys['arrowup'])    dy=-1;
-  if(keys['s']||keys['arrowdown'])  dy= 1;
-  if(keys['a']||keys['arrowleft'])  dx=-1;
-  if(keys['d']||keys['arrowright']) dx= 1;
-  if(dx&&dy){dx*=0.707;dy*=0.707;}
-  if(dx||dy){
-    const nx=player.tx+dx*SPEED*dt,ny=player.ty+dy*SPEED*dt;
-    if(!isSolid(nx,player.ty)) player.tx=nx;
-    if(!isSolid(player.tx,ny)) player.ty=ny;
-    if(Math.abs(dx)>Math.abs(dy)) player.facing=dx>0?'right':'left';
-    else player.facing=dy>0?'down':'up';
-    player.frameTimer=(player.frameTimer||0)+dt;
-    if(player.frameTimer>0.12){player.frameTimer=0;player.frame=(player.frame+1)%4;}
-  } else player.frame=0;
+      const SPEED = 5;
+      function updatePlayer(dt) {
+        let dx = 0,
+          dy = 0;
+        if (keys["w"] || keys["arrowup"]) dy = -1;
+        if (keys["s"] || keys["arrowdown"]) dy = 1;
+        if (keys["a"] || keys["arrowleft"]) dx = -1;
+        if (keys["d"] || keys["arrowright"]) dx = 1;
+        if (dx && dy) {
+          dx *= 0.707;
+          dy *= 0.707;
+        }
+        if (dx || dy) {
+          const nx = player.tx + dx * SPEED * dt,
+            ny = player.ty + dy * SPEED * dt;
+          if (!isSolid(nx, player.ty)) player.tx = nx;
+          if (!isSolid(player.tx, ny)) player.ty = ny;
+          if (Math.abs(dx) > Math.abs(dy))
+            player.facing = dx > 0 ? "right" : "left";
+          else player.facing = dy > 0 ? "down" : "up";
+          player.frameTimer = (player.frameTimer || 0) + dt;
+          if (player.frameTimer > 0.12) {
+            player.frameTimer = 0;
+            player.frame = (player.frame + 1) % 4;
+          }
+        } else player.frame = 0;
 
-  // Exit via door
-  if(player.ty>=13.5&&player.tx>=9.5&&player.tx<=12.5&&!exitTriggered) triggerExit();
-}
+        // Exit via door
+        if (
+          player.ty >= 13.5 &&
+          player.tx >= 9.5 &&
+          player.tx <= 12.5 &&
+          !exitTriggered
+        )
+          triggerExit();
+      }
 
-function isSolid(tx,ty){
-  const c=Math.floor(tx),r=Math.floor(ty);
-  if(c<0||r<0||c>=COLS||r>=ROWS) return true;
-  if(SOLID.has(MAP[r]?.[c])) return true;
-  for(const obj of OBJECTS){
-    if(!obj.hw||!obj.hh) continue;
-    const pL=tx+0.15,pR=tx+0.85,pT=ty+0.15,pB=ty+0.85;
-    if(pR>obj.hx&&pL<obj.hx+obj.hw&&pB>obj.hy&&pT<obj.hy+obj.hh) return true;
-  }
-  return false;
-}
+      function isSolid(tx, ty) {
+        const c = Math.floor(tx),
+          r = Math.floor(ty);
+        if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return true;
+        if (SOLID.has(MAP[r]?.[c])) return true;
+        for (const obj of OBJECTS) {
+          if (!obj.hw || !obj.hh) continue;
+          const pL = tx + 0.15,
+            pR = tx + 0.85,
+            pT = ty + 0.15,
+            pB = ty + 0.85;
+          if (
+            pR > obj.hx &&
+            pL < obj.hx + obj.hw &&
+            pB > obj.hy &&
+            pT < obj.hy + obj.hh
+          )
+            return true;
+        }
+        return false;
+      }
 
-function tryInteract(){
-  if(DialogSystem.isOpen()) return;
-  const off={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
-  const [ox,oy]=off[player.facing];
-  const cx=Math.floor(player.tx)+ox,cy=Math.floor(player.ty)+oy;
-  const px=Math.floor(player.tx),py=Math.floor(player.ty);
-  for(const obj of OBJECTS){
-    const hit=(cx>=obj.tx&&cx<obj.tx+obj.w&&cy>=obj.ty&&cy<obj.ty+obj.h)
-           ||(px>=obj.tx&&px<obj.tx+obj.w&&py>=obj.ty&&py<obj.ty+obj.h);
-    if(hit){ obj.interact(); return; }
-  }
-  if(MAP[cy]?.[cx]===_D||MAP[py]?.[px]===_D) triggerExit();
-}
+      function tryInteract() {
+        if (DialogSystem.isOpen()) return;
+        const off = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+        const [ox, oy] = off[player.facing];
+        const cx = Math.floor(player.tx) + ox,
+          cy = Math.floor(player.ty) + oy;
+        const px = Math.floor(player.tx),
+          py = Math.floor(player.ty);
+        for (const obj of OBJECTS) {
+          const hit =
+            (cx >= obj.tx &&
+              cx < obj.tx + obj.w &&
+              cy >= obj.ty &&
+              cy < obj.ty + obj.h) ||
+            (px >= obj.tx &&
+              px < obj.tx + obj.w &&
+              py >= obj.ty &&
+              py < obj.ty + obj.h);
+          if (hit) {
+            obj.interact();
+            return;
+          }
+        }
+        if (MAP[cy]?.[cx] === _D || MAP[py]?.[px] === _D) triggerExit();
+      }
 
-function tryExit(){
-  if(!isPanelOpen()&&!DialogSystem.isOpen()) triggerExit();
-}
+      function tryExit() {
+        if (!isPanelOpen() && !DialogSystem.isOpen()) triggerExit();
+      }
 
-function triggerExit(){
-  if(exitTriggered) return;
-  exitTriggered=true;
-  saveState({money:player.money,inventory:player.inventory,dignity:player.dignity});
-  const fade=document.createElement('div');
-  fade.style.cssText='position:fixed;inset:0;background:#050508;z-index:9999;opacity:0;transition:opacity 0.8s ease;pointer-events:none;';
-  document.body.appendChild(fade);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{ fade.style.opacity='1'; }));
-  setTimeout(()=>{ window.location.href='Street3.html?from=casino'; },900);
-}
+      function triggerExit() {
+        if (exitTriggered) return;
+        exitTriggered = true;
+        saveState({
+          money: player.money,
+          inventory: player.inventory,
+          dignity: player.dignity,
+        });
+        const fade = document.createElement("div");
+        fade.style.cssText =
+          "position:fixed;inset:0;background:#050508;z-index:9999;opacity:0;transition:opacity 0.8s ease;pointer-events:none;";
+        document.body.appendChild(fade);
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            fade.style.opacity = "1";
+          })
+        );
+        setTimeout(() => {
+          window.location.href = "Street3.html?from=casino";
+        }, 900);
+      }
 
-/* ══════════════════════════════════════════
+      /* ══════════════════════════════════════════
    GAME PANEL SYSTEM
 ══════════════════════════════════════════ */
-const panel=document.getElementById('game-panel');
-const panelContent=document.getElementById('panel-content');
-function isPanelOpen(){ return panel.classList.contains('open'); }
+      const panel = document.getElementById("game-panel");
+      const panelContent = document.getElementById("panel-content");
+      function isPanelOpen() {
+        return panel.classList.contains("open");
+      }
 
-function closePanel(){
-  panel.classList.remove('open');
-  saveState({money:player.money,inventory:player.inventory,dignity:player.dignity});
-}
+      function closePanel() {
+        panel.classList.remove("open");
+        saveState({
+          money: player.money,
+          inventory: player.inventory,
+          dignity: player.dignity,
+        });
+      }
 
-// Close panel on outside click
-panel.addEventListener('click',e=>{ if(e.target===panel) closePanel(); });
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&isPanelOpen()){ closePanel(); }
-});
+      // Close panel on outside click
+      panel.addEventListener("click", (e) => {
+        if (e.target === panel) closePanel();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && isPanelOpen()) {
+          closePanel();
+        }
+      });
 
-function balanceHTML(){
-  return `<div class="balance-bar">
+      function balanceHTML() {
+        return `<div class="balance-bar">
     <span>💰 Balance: <span>€${player.money}</span></span>
     <span class="dig">☠ Dignity: ${player.dignity}%</span>
   </div>`;
-}
+      }
 
-function openCasinoMenu(){
-  panelContent.innerHTML=`
+      function openCasinoMenu() {
+        panelContent.innerHTML = `
     <button class="panel-close" onclick="closePanel()">✕</button>
     <div class="panel-title">🎰 LUCKY TUESDAY CASINO</div>
     <div class="panel-sub">WHERE MONEY GOES TO DIE • EST. SOME TUESDAY</div>
@@ -761,36 +1774,38 @@ function openCasinoMenu(){
     </div>
     <hr class="pink">
     <button class="exit-btn" onclick="closePanel()">← Back to Casino Floor</button>`;
-  panel.classList.add('open');
-}
+        panel.classList.add("open");
+      }
 
-function openPanel(game){
-  panel.classList.add('open');
-  if(game==='roulette') renderRoulette();
-  else if(game==='blackjack') renderBlackjack();
-  else if(game==='slots') renderSlots();
-}
+      function openPanel(game) {
+        panel.classList.add("open");
+        if (game === "roulette") renderRoulette();
+        else if (game === "blackjack") renderBlackjack();
+        else if (game === "slots") renderSlots();
+      }
 
-/* ══════════════════════════════════════════
+      /* ══════════════════════════════════════════
    ROULETTE
 ══════════════════════════════════════════ */
-const ROULETTE_NUMBERS=[
-  0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,
-  24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26
-];
-const RED_NUMS=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+      const ROULETTE_NUMBERS = [
+        0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10,
+        5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26,
+      ];
+      const RED_NUMS = new Set([
+        1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36,
+      ]);
 
-let rouletteState={
-  betType:null,   // 'red'|'black'|'even'|'odd'|'low'|'high'|'number'
-  betNumber:null,
-  betAmount:1,
-  spinning:false,
-  result:null,
-  wheelAngle:0,
-};
+      let rouletteState = {
+        betType: null, // 'red'|'black'|'even'|'odd'|'low'|'high'|'number'
+        betNumber: null,
+        betAmount: 1,
+        spinning: false,
+        result: null,
+        wheelAngle: 0,
+      };
 
-function renderRoulette(){
-  panelContent.innerHTML=`
+      function renderRoulette() {
+        panelContent.innerHTML = `
     <button class="panel-close" onclick="closePanel()">✕</button>
     <div class="panel-title">🎡 ROULETTE</div>
     <div class="panel-sub">THE WHEEL DOESN'T CARE ABOUT YOUR FEELINGS</div>
@@ -819,204 +1834,348 @@ function renderRoulette(){
     <div id="roulette-result"></div>
     <hr class="pink">
     <button class="exit-btn" onclick="openCasinoMenu()">← Back to Casino Menu</button>`;
-  drawRouletteWheel(0);
-  updateRouletteBetSummary();
-  startRouletteWheelAnim();
-}
+        drawRouletteWheel(0);
+        updateRouletteBetSummary();
+        startRouletteWheelAnim();
+      }
 
-let rouletteAnimFrame=null;
-function startRouletteWheelAnim(){
-  function anim(){
-    if(!document.getElementById('roulette-wheel-canvas')){return;}
-    rouletteState.wheelAngle+=0.005;
-    drawRouletteWheel(rouletteState.wheelAngle);
-    rouletteAnimFrame=requestAnimationFrame(anim);
-  }
-  cancelAnimationFrame(rouletteAnimFrame);
-  anim();
-}
+      let rouletteAnimFrame = null;
+      function startRouletteWheelAnim() {
+        function anim() {
+          if (!document.getElementById("roulette-wheel-canvas")) {
+            return;
+          }
+          rouletteState.wheelAngle += 0.005;
+          drawRouletteWheel(rouletteState.wheelAngle);
+          rouletteAnimFrame = requestAnimationFrame(anim);
+        }
+        cancelAnimationFrame(rouletteAnimFrame);
+        anim();
+      }
 
-function drawRouletteWheel(angle){
-  const cv=document.getElementById('roulette-wheel-canvas');
-  if(!cv) return;
-  const ctx=cv.getContext('2d');
-  const cx=100,cy=100,r=90;
-  ctx.clearRect(0,0,200,200);
-  // Outer ring
-  ctx.fillStyle='#2a1808'; ctx.beginPath(); ctx.arc(cx,cy,r+6,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#c8a020'; ctx.beginPath(); ctx.arc(cx,cy,r+3,0,Math.PI*2); ctx.fill();
-  // Segments
-  const n=37;
-  for(let i=0;i<n;i++){
-    const num=ROULETTE_NUMBERS[i];
-    const a0=angle+i/n*Math.PI*2, a1=angle+(i+1)/n*Math.PI*2;
-    ctx.fillStyle=num===0?'#1a7018':(RED_NUMS.has(num)?'#c01818':'#0a0a18');
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,a0,a1); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle='rgba(200,160,0,0.3)'; ctx.lineWidth=0.5;
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,a0,a1); ctx.closePath(); ctx.stroke();
-    // Number
-    const mid=(a0+a1)/2;
-    const tx=cx+Math.cos(mid)*(r*0.72), ty=cy+Math.sin(mid)*(r*0.72);
-    ctx.save(); ctx.translate(tx,ty); ctx.rotate(mid+Math.PI/2);
-    ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='bold 7px monospace';
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(num===0?'0':String(num),0,0); ctx.restore();
-  }
-  // Hub
-  ctx.fillStyle='#1a1008'; ctx.beginPath(); ctx.arc(cx,cy,12,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#c8a020'; ctx.beginPath(); ctx.arc(cx,cy,7,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#f8f0d0'; ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2); ctx.fill();
-  // Ball (during spin show it, otherwise fixed)
-  if(!rouletteState.spinning&&rouletteState.result!==null){
-    // Show where it landed
-    const idx=ROULETTE_NUMBERS.indexOf(rouletteState.result);
-    const ba=angle+(idx+0.5)/n*Math.PI*2;
-    const bx=cx+Math.cos(ba)*(r*0.82), by=cy+Math.sin(ba)*(r*0.82);
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(bx,by,5,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1; ctx.stroke();
-  }
-  // Pointer
-  ctx.fillStyle='#ffe600';
-  ctx.beginPath(); ctx.moveTo(cx,cy-r-8); ctx.lineTo(cx-5,cy-r+2); ctx.lineTo(cx+5,cy-r+2); ctx.closePath(); ctx.fill();
-}
+      function drawRouletteWheel(angle) {
+        const cv = document.getElementById("roulette-wheel-canvas");
+        if (!cv) return;
+        const ctx = cv.getContext("2d");
+        const cx = 100,
+          cy = 100,
+          r = 90;
+        ctx.clearRect(0, 0, 200, 200);
+        // Outer ring
+        ctx.fillStyle = "#2a1808";
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#c8a020";
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 3, 0, Math.PI * 2);
+        ctx.fill();
+        // Segments
+        const n = 37;
+        for (let i = 0; i < n; i++) {
+          const num = ROULETTE_NUMBERS[i];
+          const a0 = angle + (i / n) * Math.PI * 2,
+            a1 = angle + ((i + 1) / n) * Math.PI * 2;
+          ctx.fillStyle =
+            num === 0 ? "#1a7018" : RED_NUMS.has(num) ? "#c01818" : "#0a0a18";
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.arc(cx, cy, r, a0, a1);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "rgba(200,160,0,0.3)";
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.arc(cx, cy, r, a0, a1);
+          ctx.closePath();
+          ctx.stroke();
+          // Number
+          const mid = (a0 + a1) / 2;
+          const tx = cx + Math.cos(mid) * (r * 0.72),
+            ty = cy + Math.sin(mid) * (r * 0.72);
+          ctx.save();
+          ctx.translate(tx, ty);
+          ctx.rotate(mid + Math.PI / 2);
+          ctx.fillStyle = "rgba(255,255,255,0.8)";
+          ctx.font = "bold 7px monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(num === 0 ? "0" : String(num), 0, 0);
+          ctx.restore();
+        }
+        // Hub
+        ctx.fillStyle = "#1a1008";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#c8a020";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#f8f0d0";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Ball (during spin show it, otherwise fixed)
+        if (!rouletteState.spinning && rouletteState.result !== null) {
+          // Show where it landed
+          const idx = ROULETTE_NUMBERS.indexOf(rouletteState.result);
+          const ba = angle + ((idx + 0.5) / n) * Math.PI * 2;
+          const bx = cx + Math.cos(ba) * (r * 0.82),
+            by = cy + Math.sin(ba) * (r * 0.82);
+          ctx.fillStyle = "#fff";
+          ctx.beginPath();
+          ctx.arc(bx, by, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(0,0,0,0.5)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        // Pointer
+        ctx.fillStyle = "#ffe600";
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - r - 8);
+        ctx.lineTo(cx - 5, cy - r + 2);
+        ctx.lineTo(cx + 5, cy - r + 2);
+        ctx.closePath();
+        ctx.fill();
+      }
 
-function setRoulettebet(type,num=null){
-  rouletteState.betType=type; rouletteState.betNumber=num;
-  document.querySelectorAll('.bet-btn').forEach(b=>b.classList.remove('active'));
-  const btn=document.getElementById('rb-'+type);
-  if(btn) btn.classList.add('active');
-  updateRouletteBetSummary();
-}
+      function setRoulettebet(type, num = null) {
+        rouletteState.betType = type;
+        rouletteState.betNumber = num;
+        document
+          .querySelectorAll(".bet-btn")
+          .forEach((b) => b.classList.remove("active"));
+        const btn = document.getElementById("rb-" + type);
+        if (btn) btn.classList.add("active");
+        updateRouletteBetSummary();
+      }
 
-function promptRouletteNumber(){
-  const n=parseInt(prompt('Choose a number (0–36):'));
-  if(isNaN(n)||n<0||n>36){ alert('Invalid number!'); return; }
-  setRoulettebet('number',n);
-  document.getElementById('rb-num').textContent=`🎯 #${n} (35:1)`;
-  document.getElementById('rb-num').classList.add('active');
-}
+      function promptRouletteNumber() {
+        const n = parseInt(prompt("Choose a number (0–36):"));
+        if (isNaN(n) || n < 0 || n > 36) {
+          alert("Invalid number!");
+          return;
+        }
+        setRoulettebet("number", n);
+        document.getElementById("rb-num").textContent = `🎯 #${n} (35:1)`;
+        document.getElementById("rb-num").classList.add("active");
+      }
 
-function setRouletteAmount(amt){
-  const a=Math.min(amt,player.money);
-  rouletteState.betAmount=Math.max(1,a);
-  document.querySelectorAll('.amount-btn').forEach(b=>b.classList.remove('active'));
-  updateRouletteBetSummary();
-}
+      function setRouletteAmount(amt) {
+        const a = Math.min(amt, player.money);
+        rouletteState.betAmount = Math.max(1, a);
+        document
+          .querySelectorAll(".amount-btn")
+          .forEach((b) => b.classList.remove("active"));
+        updateRouletteBetSummary();
+      }
 
-function updateRouletteBetSummary(){
-  const el=document.getElementById('roulette-bet-summary');
-  if(!el) return;
-  const {betType,betNumber,betAmount}=rouletteState;
-  if(!betType){ el.textContent='Select a bet type ↑'; return; }
-  const typeStr=betType==='number'?`Number ${betNumber}`:betType.toUpperCase();
-  el.textContent=`Bet: €${betAmount} on ${typeStr}`;
-}
+      function updateRouletteBetSummary() {
+        const el = document.getElementById("roulette-bet-summary");
+        if (!el) return;
+        const { betType, betNumber, betAmount } = rouletteState;
+        if (!betType) {
+          el.textContent = "Select a bet type ↑";
+          return;
+        }
+        const typeStr =
+          betType === "number" ? `Number ${betNumber}` : betType.toUpperCase();
+        el.textContent = `Bet: €${betAmount} on ${typeStr}`;
+      }
 
-function spinRoulette(){
-  if(rouletteState.spinning) return;
-  if(!rouletteState.betType){ document.getElementById('roulette-result').textContent='⚠ Choose a bet type first!'; return; }
-  if(rouletteState.betAmount<1||player.money<rouletteState.betAmount){
-    document.getElementById('roulette-result').textContent='⚠ Not enough money!'; return;
-  }
-  player.money-=rouletteState.betAmount;
-  saveState({money:player.money});
-  document.getElementById('roulette-result').textContent='🎡 Spinning...';
-  document.getElementById('spin-btn').disabled=true;
+      function spinRoulette() {
+        if (rouletteState.spinning) return;
+        if (!rouletteState.betType) {
+          document.getElementById("roulette-result").textContent =
+            "⚠ Choose a bet type first!";
+          return;
+        }
+        if (
+          rouletteState.betAmount < 1 ||
+          player.money < rouletteState.betAmount
+        ) {
+          document.getElementById("roulette-result").textContent =
+            "⚠ Not enough money!";
+          return;
+        }
+        player.money -= rouletteState.betAmount;
+        saveState({ money: player.money });
+        document.getElementById("roulette-result").textContent =
+          "🎡 Spinning...";
+        document.getElementById("spin-btn").disabled = true;
 
-  rouletteState.spinning=true;
-  rouletteState.result=null;
-  // Animate fast spin then slow
-  const result=ROULETTE_NUMBERS[Math.floor(Math.random()*37)];
-  let spinTime=0, totalSpin=3.5+Math.random()*2;
-  let lastTs=performance.now();
-  function spinStep(ts){
-    const dt=(ts-lastTs)/1000; lastTs=ts;
-    spinTime+=dt;
-    const prog=spinTime/totalSpin;
-    const speed=prog<0.5?8:Math.max(0.3,8*(1-Math.pow((prog-0.5)/0.5,2)));
-    rouletteState.wheelAngle+=speed*dt;
-    drawRouletteWheel(rouletteState.wheelAngle);
-    if(spinTime<totalSpin){ requestAnimationFrame(spinStep); }
-    else{
-      rouletteState.spinning=false;
-      rouletteState.result=result;
-      resolveRouletteBet(result);
-    }
-  }
-  requestAnimationFrame(spinStep);
-}
+        rouletteState.spinning = true;
+        rouletteState.result = null;
+        // Animate fast spin then slow
+        const result = ROULETTE_NUMBERS[Math.floor(Math.random() * 37)];
+        let spinTime = 0,
+          totalSpin = 3.5 + Math.random() * 2;
+        let lastTs = performance.now();
+        function spinStep(ts) {
+          const dt = (ts - lastTs) / 1000;
+          lastTs = ts;
+          spinTime += dt;
+          const prog = spinTime / totalSpin;
+          const speed =
+            prog < 0.5
+              ? 8
+              : Math.max(0.3, 8 * (1 - Math.pow((prog - 0.5) / 0.5, 2)));
+          rouletteState.wheelAngle += speed * dt;
+          drawRouletteWheel(rouletteState.wheelAngle);
+          if (spinTime < totalSpin) {
+            requestAnimationFrame(spinStep);
+          } else {
+            rouletteState.spinning = false;
+            rouletteState.result = result;
+            resolveRouletteBet(result);
+          }
+        }
+        requestAnimationFrame(spinStep);
+      }
 
-function resolveRouletteBet(result){
-  const{betType,betNumber,betAmount}=rouletteState;
-  let win=false, payout=0;
-  const isRed=RED_NUMS.has(result);
-  const isBlack=result!==0&&!isRed;
-  if(betType==='red'&&isRed){win=true;payout=betAmount*2;}
-  else if(betType==='black'&&isBlack){win=true;payout=betAmount*2;}
-  else if(betType==='even'&&result!==0&&result%2===0){win=true;payout=betAmount*2;}
-  else if(betType==='odd'&&result%2===1){win=true;payout=betAmount*2;}
-  else if(betType==='low'&&result>=1&&result<=18){win=true;payout=betAmount*2;}
-  else if(betType==='high'&&result>=19&&result<=36){win=true;payout=betAmount*2;}
-  else if(betType==='number'&&result===betNumber){win=true;payout=betAmount*36;}
+      function resolveRouletteBet(result) {
+        const { betType, betNumber, betAmount } = rouletteState;
+        let win = false,
+          payout = 0;
+        const isRed = RED_NUMS.has(result);
+        const isBlack = result !== 0 && !isRed;
+        if (betType === "red" && isRed) {
+          win = true;
+          payout = betAmount * 2;
+        } else if (betType === "black" && isBlack) {
+          win = true;
+          payout = betAmount * 2;
+        } else if (betType === "even" && result !== 0 && result % 2 === 0) {
+          win = true;
+          payout = betAmount * 2;
+        } else if (betType === "odd" && result % 2 === 1) {
+          win = true;
+          payout = betAmount * 2;
+        } else if (betType === "low" && result >= 1 && result <= 18) {
+          win = true;
+          payout = betAmount * 2;
+        } else if (betType === "high" && result >= 19 && result <= 36) {
+          win = true;
+          payout = betAmount * 2;
+        } else if (betType === "number" && result === betNumber) {
+          win = true;
+          payout = betAmount * 36;
+        }
 
-  const colorStr=result===0?'GREEN':isRed?'RED':'BLACK';
-  const el=document.getElementById('roulette-result');
-  if(win){
-    player.money+=payout;
-    const profit=payout-betAmount;
-    el.innerHTML=`✅ ${result} (${colorStr})! You win €${profit}! Balance: €${player.money}`;
-    if(player.dignity<100) player.dignity=Math.min(100,player.dignity+2);
-  } else {
-    el.innerHTML=`❌ ${result} (${colorStr}). Lost €${betAmount}. Balance: €${player.money}`;
-  }
-  saveState({money:player.money,dignity:player.dignity});
-  document.getElementById('spin-btn').disabled=false;
-  document.querySelector('.balance-bar').innerHTML=balanceHTML().replace('<div class="balance-bar">','').replace('</div>','');
-  renderRoulette(); // re-render to update balance display
-  // Scroll result into view
-  setTimeout(()=>{ el.scrollIntoView({behavior:'smooth',block:'nearest'}); },100);
-}
+        const colorStr = result === 0 ? "GREEN" : isRed ? "RED" : "BLACK";
+        const el = document.getElementById("roulette-result");
+        if (win) {
+          player.money += payout;
+          const profit = payout - betAmount;
+          el.innerHTML = `✅ ${result} (${colorStr})! You win €${profit}! Balance: €${player.money}`;
+          if (player.dignity < 100)
+            player.dignity = Math.min(100, player.dignity + 2);
+        } else {
+          el.innerHTML = `❌ ${result} (${colorStr}). Lost €${betAmount}. Balance: €${player.money}`;
+        }
+        saveState({ money: player.money, dignity: player.dignity });
+        document.getElementById("spin-btn").disabled = false;
+        document.querySelector(".balance-bar").innerHTML = balanceHTML()
+          .replace('<div class="balance-bar">', "")
+          .replace("</div>", "");
+        renderRoulette(); // re-render to update balance display
+        // Scroll result into view
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 100);
+      }
 
-/* ══════════════════════════════════════════
+      /* ══════════════════════════════════════════
    BLACKJACK
 ══════════════════════════════════════════ */
-const SUITS=['♠','♥','♦','♣'];
-const VALUES=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-let bjState={deck:[],playerHand:[],dealerHand:[],bet:5,phase:'bet'}; // phase: bet|playing|done
+      const SUITS = ["♠", "♥", "♦", "♣"];
+      const VALUES = [
+        "A",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "J",
+        "Q",
+        "K",
+      ];
+      let bjState = {
+        deck: [],
+        playerHand: [],
+        dealerHand: [],
+        bet: 5,
+        phase: "bet",
+      }; // phase: bet|playing|done
 
-function newDeck(){
-  const d=[];
-  for(const s of SUITS) for(const v of VALUES) d.push({s,v});
-  for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
-  return d;
-}
-function cardValue(v){ if(v==='A') return 11; if(['J','Q','K'].includes(v)) return 10; return parseInt(v); }
-function handScore(hand){
-  let s=hand.reduce((a,c)=>a+cardValue(c.v),0);
-  let aces=hand.filter(c=>c.v==='A').length;
-  while(s>21&&aces>0){s-=10;aces--;}
-  return s;
-}
-function isRed(c){ return c.s==='♥'||c.s==='♦'; }
-function cardHTML(c,hidden=false){
-  if(hidden) return `<div class="card back"></div>`;
-  return `<div class="card ${isRed(c)?'red':''}">${c.v}<div class="card-suit">${c.s}</div></div>`;
-}
-function handsHTML(showFull=false){
-  const ps=handScore(bjState.playerHand);
-  const ds=showFull?handScore(bjState.dealerHand):cardValue(bjState.dealerHand[0]?.v||0);
-  return `
+      function newDeck() {
+        const d = [];
+        for (const s of SUITS) for (const v of VALUES) d.push({ s, v });
+        for (let i = d.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [d[i], d[j]] = [d[j], d[i]];
+        }
+        return d;
+      }
+      function cardValue(v) {
+        if (v === "A") return 11;
+        if (["J", "Q", "K"].includes(v)) return 10;
+        return parseInt(v);
+      }
+      function handScore(hand) {
+        let s = hand.reduce((a, c) => a + cardValue(c.v), 0);
+        let aces = hand.filter((c) => c.v === "A").length;
+        while (s > 21 && aces > 0) {
+          s -= 10;
+          aces--;
+        }
+        return s;
+      }
+      function isRed(c) {
+        return c.s === "♥" || c.s === "♦";
+      }
+      function cardHTML(c, hidden = false) {
+        if (hidden) return `<div class="card back"></div>`;
+        return `<div class="card ${isRed(c) ? "red" : ""}">${
+          c.v
+        }<div class="card-suit">${c.s}</div></div>`;
+      }
+      function handsHTML(showFull = false) {
+        const ps = handScore(bjState.playerHand);
+        const ds = showFull
+          ? handScore(bjState.dealerHand)
+          : cardValue(bjState.dealerHand[0]?.v || 0);
+        return `
     <div class="bj-label">DEALER</div>
-    <div class="bj-score">${showFull?ds:'?'}</div>
-    <div class="cards-row">${bjState.dealerHand.map((c,i)=>cardHTML(c,!showFull&&i===1)).join('')}</div>
+    <div class="bj-score">${showFull ? ds : "?"}</div>
+    <div class="cards-row">${bjState.dealerHand
+      .map((c, i) => cardHTML(c, !showFull && i === 1))
+      .join("")}</div>
     <div class="bj-label" style="margin-top:0.6rem">YOU</div>
-    <div class="bj-score">${ps}${ps>21?' 💥 BUST':ps===21?' 🌟 21!':''}</div>
-    <div class="cards-row">${bjState.playerHand.map(c=>cardHTML(c)).join('')}</div>`;
-}
+    <div class="bj-score">${ps}${
+          ps > 21 ? " 💥 BUST" : ps === 21 ? " 🌟 21!" : ""
+        }</div>
+    <div class="cards-row">${bjState.playerHand
+      .map((c) => cardHTML(c))
+      .join("")}</div>`;
+      }
 
-function renderBlackjack(){
-  bjState={deck:newDeck(),playerHand:[],dealerHand:[],bet:5,phase:'bet'};
-  panelContent.innerHTML=`
+      function renderBlackjack() {
+        bjState = {
+          deck: newDeck(),
+          playerHand: [],
+          dealerHand: [],
+          bet: 5,
+          phase: "bet",
+        };
+        panelContent.innerHTML = `
     <button class="panel-close" onclick="closePanel()">✕</button>
     <div class="panel-title">🃏 BLACKJACK</div>
     <div class="panel-sub">HIT 21. OR AT LEAST TRY.</div>
@@ -1031,134 +2190,161 @@ function renderBlackjack(){
       <button class="amount-btn" onclick="setBjBet(25)">€25</button>
       <button class="amount-btn" onclick="setBjBet(player.money)">ALL IN 💸</button>
     </div>
-    <div id="bj-bet-label" style="font-family:'VT323',monospace;color:#ff40c0;margin:0.5rem 0">Bet: €${bjState.bet}</div>
+    <div id="bj-bet-label" style="font-family:'VT323',monospace;color:#ff40c0;margin:0.5rem 0">Bet: €${
+      bjState.bet
+    }</div>
     <div class="bj-btns"><button class="bj-btn deal" id="bj-deal" onclick="bjDeal()">🃏 DEAL</button></div>
     <div id="bj-result"></div>
     <hr class="pink">
     <button class="exit-btn" onclick="openCasinoMenu()">← Back to Casino Menu</button>`;
-}
+      }
 
-function setBjBet(amt){
-  bjState.bet=Math.max(1,Math.min(amt,player.money));
-  const el=document.getElementById('bj-bet-label');
-  if(el) el.textContent=`Bet: €${bjState.bet}`;
-}
+      function setBjBet(amt) {
+        bjState.bet = Math.max(1, Math.min(amt, player.money));
+        const el = document.getElementById("bj-bet-label");
+        if (el) el.textContent = `Bet: €${bjState.bet}`;
+      }
 
-function bjDeal(){
-  if(bjState.phase!=='bet') return;
-  if(player.money<bjState.bet){
-    document.getElementById('bj-result').textContent='⚠ Not enough money!'; return;
-  }
-  player.money-=bjState.bet; saveState({money:player.money});
-  bjState.deck=newDeck();
-  bjState.playerHand=[bjState.deck.pop(),bjState.deck.pop()];
-  bjState.dealerHand=[bjState.deck.pop(),bjState.deck.pop()];
-  bjState.phase='playing';
-  refreshBjUI();
-  // Blackjack?
-  if(handScore(bjState.playerHand)===21){
-    setTimeout(()=>bjStand(),400);
-  }
-}
+      function bjDeal() {
+        if (bjState.phase !== "bet") return;
+        if (player.money < bjState.bet) {
+          document.getElementById("bj-result").textContent =
+            "⚠ Not enough money!";
+          return;
+        }
+        player.money -= bjState.bet;
+        saveState({ money: player.money });
+        bjState.deck = newDeck();
+        bjState.playerHand = [bjState.deck.pop(), bjState.deck.pop()];
+        bjState.dealerHand = [bjState.deck.pop(), bjState.deck.pop()];
+        bjState.phase = "playing";
+        refreshBjUI();
+        // Blackjack?
+        if (handScore(bjState.playerHand) === 21) {
+          setTimeout(() => bjStand(), 400);
+        }
+      }
 
-function refreshBjUI(showFull=false){
-  const handsEl=document.getElementById('bj-hands');
-  if(handsEl) handsEl.innerHTML=handsHTML(showFull);
-  const betRow=document.getElementById('bj-bet-row');
-  const dealBtn=document.getElementById('bj-deal');
-  const bjBtns=document.querySelector('.bj-btns');
-  if(bjState.phase==='playing'){
-    if(betRow) betRow.style.display='none';
-    const lbl=document.getElementById('bj-bet-label');
-    if(lbl) lbl.textContent=`Bet: €${bjState.bet}`;
-    if(bjBtns) bjBtns.innerHTML=`
+      function refreshBjUI(showFull = false) {
+        const handsEl = document.getElementById("bj-hands");
+        if (handsEl) handsEl.innerHTML = handsHTML(showFull);
+        const betRow = document.getElementById("bj-bet-row");
+        const dealBtn = document.getElementById("bj-deal");
+        const bjBtns = document.querySelector(".bj-btns");
+        if (bjState.phase === "playing") {
+          if (betRow) betRow.style.display = "none";
+          const lbl = document.getElementById("bj-bet-label");
+          if (lbl) lbl.textContent = `Bet: €${bjState.bet}`;
+          if (bjBtns)
+            bjBtns.innerHTML = `
       <button class="bj-btn hit"   onclick="bjHit()">HIT</button>
       <button class="bj-btn stand" onclick="bjStand()">STAND</button>`;
-  } else if(bjState.phase==='done'){
-    if(bjBtns) bjBtns.innerHTML=`<button class="bj-btn deal" onclick="bjReset()">🃏 NEW HAND</button>`;
-  }
-  const balEl=document.querySelector('.balance-bar');
-  if(balEl) balEl.outerHTML=balanceHTML();
-}
+        } else if (bjState.phase === "done") {
+          if (bjBtns)
+            bjBtns.innerHTML = `<button class="bj-btn deal" onclick="bjReset()">🃏 NEW HAND</button>`;
+        }
+        const balEl = document.querySelector(".balance-bar");
+        if (balEl) balEl.outerHTML = balanceHTML();
+      }
 
-function bjHit(){
-  if(bjState.phase!=='playing') return;
-  bjState.playerHand.push(bjState.deck.pop());
-  const s=handScore(bjState.playerHand);
-  refreshBjUI();
-  if(s>21) resolveBlackjack();
-}
+      function bjHit() {
+        if (bjState.phase !== "playing") return;
+        bjState.playerHand.push(bjState.deck.pop());
+        const s = handScore(bjState.playerHand);
+        refreshBjUI();
+        if (s > 21) resolveBlackjack();
+      }
 
-function bjStand(){
-  if(bjState.phase!=='playing') return;
-  // Dealer hits to 17
-  while(handScore(bjState.dealerHand)<17) bjState.dealerHand.push(bjState.deck.pop());
-  resolveBlackjack();
-}
+      function bjStand() {
+        if (bjState.phase !== "playing") return;
+        // Dealer hits to 17
+        while (handScore(bjState.dealerHand) < 17)
+          bjState.dealerHand.push(bjState.deck.pop());
+        resolveBlackjack();
+      }
 
-function resolveBlackjack(){
-  bjState.phase='done';
-  refreshBjUI(true);
-  const ps=handScore(bjState.playerHand), ds=handScore(bjState.dealerHand);
-  const el=document.getElementById('bj-result');
-  let msg='';
-  if(ps>21){
-    msg=`💥 Bust! You lose €${bjState.bet}. Balance: €${player.money}`;
-  } else if(ds>21||(ps>ds)){
-    const isBlackjack=ps===21&&bjState.playerHand.length===2;
-    const payout=isBlackjack?Math.floor(bjState.bet*2.5):bjState.bet*2;
-    player.money+=payout;
-    const profit=payout-bjState.bet;
-    msg=`${isBlackjack?'🌟 BLACKJACK! ':'✅ '}You win €${profit}! Balance: €${player.money}`;
-    if(player.dignity<100) player.dignity=Math.min(100,player.dignity+3);
-  } else if(ps===ds){
-    player.money+=bjState.bet;
-    msg=`🤝 Push! Bet returned. Balance: €${player.money}`;
-  } else {
-    msg=`❌ Dealer wins. You lose €${bjState.bet}. Balance: €${player.money}`;
-  }
-  saveState({money:player.money,dignity:player.dignity});
-  if(el) el.textContent=msg;
-  refreshBjUI(true);
-}
+      function resolveBlackjack() {
+        bjState.phase = "done";
+        refreshBjUI(true);
+        const ps = handScore(bjState.playerHand),
+          ds = handScore(bjState.dealerHand);
+        const el = document.getElementById("bj-result");
+        let msg = "";
+        if (ps > 21) {
+          msg = `💥 Bust! You lose €${bjState.bet}. Balance: €${player.money}`;
+        } else if (ds > 21 || ps > ds) {
+          const isBlackjack = ps === 21 && bjState.playerHand.length === 2;
+          const payout = isBlackjack
+            ? Math.floor(bjState.bet * 2.5)
+            : bjState.bet * 2;
+          player.money += payout;
+          const profit = payout - bjState.bet;
+          msg = `${
+            isBlackjack ? "🌟 BLACKJACK! " : "✅ "
+          }You win €${profit}! Balance: €${player.money}`;
+          if (player.dignity < 100)
+            player.dignity = Math.min(100, player.dignity + 3);
+        } else if (ps === ds) {
+          player.money += bjState.bet;
+          msg = `🤝 Push! Bet returned. Balance: €${player.money}`;
+        } else {
+          msg = `❌ Dealer wins. You lose €${bjState.bet}. Balance: €${player.money}`;
+        }
+        saveState({ money: player.money, dignity: player.dignity });
+        if (el) el.textContent = msg;
+        refreshBjUI(true);
+      }
 
-function bjReset(){
-  bjState.phase='bet';
-  bjState.playerHand=[]; bjState.dealerHand=[];
-  document.getElementById('bj-hands').innerHTML='';
-  document.getElementById('bj-result').textContent='';
-  const betRow=document.getElementById('bj-bet-row');
-  if(betRow) betRow.style.display='';
-  const bjBtns=document.querySelector('.bj-btns');
-  if(bjBtns) bjBtns.innerHTML=`<button class="bj-btn deal" onclick="bjDeal()">🃏 DEAL</button>`;
-  const balEl=document.querySelector('.balance-bar');
-  if(balEl) balEl.outerHTML=balanceHTML();
-}
+      function bjReset() {
+        bjState.phase = "bet";
+        bjState.playerHand = [];
+        bjState.dealerHand = [];
+        document.getElementById("bj-hands").innerHTML = "";
+        document.getElementById("bj-result").textContent = "";
+        const betRow = document.getElementById("bj-bet-row");
+        if (betRow) betRow.style.display = "";
+        const bjBtns = document.querySelector(".bj-btns");
+        if (bjBtns)
+          bjBtns.innerHTML = `<button class="bj-btn deal" onclick="bjDeal()">🃏 DEAL</button>`;
+        const balEl = document.querySelector(".balance-bar");
+        if (balEl) balEl.outerHTML = balanceHTML();
+      }
 
-/* ══════════════════════════════════════════
+      /* ══════════════════════════════════════════
    SLOT MACHINE
 ══════════════════════════════════════════ */
-const SLOT_SYMBOLS=['🍒','💎','7️⃣','🃏','💰','🔔','⭐','🎲'];
-const SLOT_WEIGHTS=[30,5,8,15,10,20,12,10]; // lower = rarer
-const SLOT_PAYOUTS={
-  '7️⃣7️⃣7️⃣':50,'💎💎💎':30,'💰💰💰':20,'⭐⭐⭐':15,
-  '🔔🔔🔔':12,'🎲🎲🎲':10,'🃏🃏🃏':8,'🍒🍒🍒':5,
-  '🍒🍒':2, // two cherries
-};
-let slotsState={reels:['🍒','🍒','🍒'],spinning:false,bet:1,result:null};
+      const SLOT_SYMBOLS = ["🍒", "💎", "7️⃣", "🃏", "💰", "🔔", "⭐", "🎲"];
+      const SLOT_WEIGHTS = [30, 5, 8, 15, 10, 20, 12, 10]; // lower = rarer
+      const SLOT_PAYOUTS = {
+        "7️⃣7️⃣7️⃣": 50,
+        "💎💎💎": 30,
+        "💰💰💰": 20,
+        "⭐⭐⭐": 15,
+        "🔔🔔🔔": 12,
+        "🎲🎲🎲": 10,
+        "🃏🃏🃏": 8,
+        "🍒🍒🍒": 5,
+        "🍒🍒": 2, // two cherries
+      };
+      let slotsState = {
+        reels: ["🍒", "🍒", "🍒"],
+        spinning: false,
+        bet: 1,
+        result: null,
+      };
 
-function weightedRandom(){
-  const total=SLOT_WEIGHTS.reduce((a,b)=>a+b,0);
-  let r=Math.random()*total;
-  for(let i=0;i<SLOT_SYMBOLS.length;i++){
-    r-=SLOT_WEIGHTS[i];
-    if(r<=0) return SLOT_SYMBOLS[i];
-  }
-  return SLOT_SYMBOLS[0];
-}
+      function weightedRandom() {
+        const total = SLOT_WEIGHTS.reduce((a, b) => a + b, 0);
+        let r = Math.random() * total;
+        for (let i = 0; i < SLOT_SYMBOLS.length; i++) {
+          r -= SLOT_WEIGHTS[i];
+          if (r <= 0) return SLOT_SYMBOLS[i];
+        }
+        return SLOT_SYMBOLS[0];
+      }
 
-function renderSlots(){
-  panelContent.innerHTML=`
+      function renderSlots() {
+        panelContent.innerHTML = `
     <button class="panel-close" onclick="closePanel()">✕</button>
     <div class="panel-title">🎰 SLOT MACHINE</div>
     <div class="panel-sub">LUCK. PURE LUCK. DEFINITELY LUCK.</div>
@@ -1175,7 +2361,9 @@ function renderSlots(){
         <button class="amount-btn" onclick="setSlotsbet(5)">€5</button>
         <button class="amount-btn" onclick="setSlotsbet(10)">€10</button>
       </div>
-      <div id="slots-bet-label" style="font-family:'VT323',monospace;color:#ff40c0;text-align:center;margin:0.4rem 0">Bet: €${slotsState.bet}</div>
+      <div id="slots-bet-label" style="font-family:'VT323',monospace;color:#ff40c0;text-align:center;margin:0.4rem 0">Bet: €${
+        slotsState.bet
+      }</div>
       <button class="slots-btn" id="slots-spin-btn" onclick="spinSlots()">🎰 PULL</button>
       <div id="slots-result"></div>
       <div class="slots-paytable">
@@ -1185,355 +2373,560 @@ function renderSlots(){
     </div>
     <hr class="pink">
     <button class="exit-btn" onclick="openCasinoMenu()">← Back to Casino Menu</button>`;
-}
+      }
 
-function setSlotsbet(amt){
-  slotsState.bet=Math.max(1,Math.min(amt,player.money));
-  const el=document.getElementById('slots-bet-label');
-  if(el) el.textContent=`Bet: €${slotsState.bet}`;
-}
+      function setSlotsbet(amt) {
+        slotsState.bet = Math.max(1, Math.min(amt, player.money));
+        const el = document.getElementById("slots-bet-label");
+        if (el) el.textContent = `Bet: €${slotsState.bet}`;
+      }
 
-function spinSlots(){
-  if(slotsState.spinning) return;
-  if(player.money<slotsState.bet){
-    document.getElementById('slots-result').textContent='⚠ Not enough money!'; return;
-  }
-  player.money-=slotsState.bet; saveState({money:player.money});
-  slotsState.spinning=true;
-  document.getElementById('slots-spin-btn').disabled=true;
-  document.getElementById('slots-result').textContent='';
+      function spinSlots() {
+        if (slotsState.spinning) return;
+        if (player.money < slotsState.bet) {
+          document.getElementById("slots-result").textContent =
+            "⚠ Not enough money!";
+          return;
+        }
+        player.money -= slotsState.bet;
+        saveState({ money: player.money });
+        slotsState.spinning = true;
+        document.getElementById("slots-spin-btn").disabled = true;
+        document.getElementById("slots-result").textContent = "";
 
-  const finalReels=[weightedRandom(),weightedRandom(),weightedRandom()];
-  const reelEls=[0,1,2].map(i=>document.getElementById('reel-'+i));
-  reelEls.forEach(r=>r?.classList.add('spinning'));
+        const finalReels = [
+          weightedRandom(),
+          weightedRandom(),
+          weightedRandom(),
+        ];
+        const reelEls = [0, 1, 2].map((i) =>
+          document.getElementById("reel-" + i)
+        );
+        reelEls.forEach((r) => r?.classList.add("spinning"));
 
-  let elapsed=0;
-  const spinDurations=[1.0,1.4,1.8]; // staggered stops
-  const startTime=performance.now();
-  const spinSymbols=()=>{
-    const now=(performance.now()-startTime)/1000;
-    reelEls.forEach((r,i)=>{
-      if(!r) return;
-      if(now<spinDurations[i]) r.textContent=SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)];
-      else{ r.textContent=finalReels[i]; r.classList.remove('spinning'); }
-    });
-    if(now<spinDurations[2]) requestAnimationFrame(spinSymbols);
-    else{
-      slotsState.spinning=false;
-      slotsState.reels=finalReels;
-      resolveSlots(finalReels);
-    }
-  };
-  requestAnimationFrame(spinSymbols);
-}
+        let elapsed = 0;
+        const spinDurations = [1.0, 1.4, 1.8]; // staggered stops
+        const startTime = performance.now();
+        const spinSymbols = () => {
+          const now = (performance.now() - startTime) / 1000;
+          reelEls.forEach((r, i) => {
+            if (!r) return;
+            if (now < spinDurations[i])
+              r.textContent =
+                SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)];
+            else {
+              r.textContent = finalReels[i];
+              r.classList.remove("spinning");
+            }
+          });
+          if (now < spinDurations[2]) requestAnimationFrame(spinSymbols);
+          else {
+            slotsState.spinning = false;
+            slotsState.reels = finalReels;
+            resolveSlots(finalReels);
+          }
+        };
+        requestAnimationFrame(spinSymbols);
+      }
 
-function resolveSlots(reels){
-  const combo=reels.join('');
-  let payout=0;
-  // Check payouts
-  for(const [pattern,mult] of Object.entries(SLOT_PAYOUTS)){
-    if(combo.startsWith(pattern)||combo===pattern){
-      payout=slotsState.bet*mult; break;
-    }
-  }
-  // Also check two cherries anywhere
-  if(!payout&&reels.filter(r=>r==='🍒').length>=2) payout=slotsState.bet*2;
+      function resolveSlots(reels) {
+        const combo = reels.join("");
+        let payout = 0;
+        // Check payouts
+        for (const [pattern, mult] of Object.entries(SLOT_PAYOUTS)) {
+          if (combo.startsWith(pattern) || combo === pattern) {
+            payout = slotsState.bet * mult;
+            break;
+          }
+        }
+        // Also check two cherries anywhere
+        if (!payout && reels.filter((r) => r === "🍒").length >= 2)
+          payout = slotsState.bet * 2;
 
-  const el=document.getElementById('slots-result');
-  const spinBtn=document.getElementById('slots-spin-btn');
-  if(payout>0){
-    player.money+=payout;
-    const profit=payout-slotsState.bet;
-    el.innerHTML=`✅ ${profit===payout-slotsState.bet&&payout>=slotsState.bet*20?'🌟 JACKPOT! ':''}+€${profit}! Balance: €${player.money}`;
-    if(payout>=slotsState.bet*20) el.style.color='#ffe600'; else el.style.color='#40ff80';
-    if(player.dignity<100) player.dignity=Math.min(100,player.dignity+1);
-  } else {
-    el.style.color='#ff4040';
-    el.textContent=`❌ No match. Lost €${slotsState.bet}. Balance: €${player.money}`;
-  }
-  saveState({money:player.money,dignity:player.dignity});
-  if(spinBtn) spinBtn.disabled=false;
-  // Update balance bar
-  document.querySelectorAll('.balance-bar').forEach(b=>{ b.outerHTML=balanceHTML(); });
-}
+        const el = document.getElementById("slots-result");
+        const spinBtn = document.getElementById("slots-spin-btn");
+        if (payout > 0) {
+          player.money += payout;
+          const profit = payout - slotsState.bet;
+          el.innerHTML = `✅ ${
+            profit === payout - slotsState.bet && payout >= slotsState.bet * 20
+              ? "🌟 JACKPOT! "
+              : ""
+          }+€${profit}! Balance: €${player.money}`;
+          if (payout >= slotsState.bet * 20) el.style.color = "#ffe600";
+          else el.style.color = "#40ff80";
+          if (player.dignity < 100)
+            player.dignity = Math.min(100, player.dignity + 1);
+        } else {
+          el.style.color = "#ff4040";
+          el.textContent = `❌ No match. Lost €${slotsState.bet}. Balance: €${player.money}`;
+        }
+        saveState({ money: player.money, dignity: player.dignity });
+        if (spinBtn) spinBtn.disabled = false;
+        // Update balance bar
+        document.querySelectorAll(".balance-bar").forEach((b) => {
+          b.outerHTML = balanceHTML();
+        });
+      }
 
-/* ══════════════════════════════════════════
+      /* ══════════════════════════════════════════
    CANVAS WORLD DRAW
 ══════════════════════════════════════════ */
-function draw(){
-  cCtx.fillStyle='#2a0840'; cCtx.fillRect(0,0,cCanvas.width,cCanvas.height);
-  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) drawTile(c,r);
-  drawDecor();
-  [...OBJECTS].sort((a,b)=>(a.ty+a.h)-(b.ty+b.h)).forEach(obj=>{
-    cCtx.save(); cCtx.translate(obj.tx*S,obj.ty*S); obj.draw(cCtx); cCtx.restore();
-  });
-  drawPlayer();
-  drawHint();
-}
+      function draw() {
+        cCtx.fillStyle = "#2a0840";
+        cCtx.fillRect(0, 0, cCanvas.width, cCanvas.height);
+        for (let r = 0; r < ROWS; r++)
+          for (let c = 0; c < COLS; c++) drawTile(c, r);
+        drawDecor();
+        [...OBJECTS]
+          .sort((a, b) => a.ty + a.h - (b.ty + b.h))
+          .forEach((obj) => {
+            cCtx.save();
+            cCtx.translate(obj.tx * S, obj.ty * S);
+            obj.draw(cCtx);
+            cCtx.restore();
+          });
+        drawPlayer();
+        drawHint();
+      }
 
-function drawTile(c,r){
-  cCtx.save(); cCtx.translate(c*S,r*S);
-  const t=MAP[r]?.[c];
-  if(t===_W) drawWall(c,r);
-  else if(t===_F) drawFloor(c,r);
-  else if(t===_C) drawCarpet(c,r);
-  else if(t===_D) drawDoor(c,r);
-  else if(t===_b) drawBar(c,r);
-  cCtx.restore();
-}
+      function drawTile(c, r) {
+        cCtx.save();
+        cCtx.translate(c * S, r * S);
+        const t = MAP[r]?.[c];
+        if (t === _W) drawWall(c, r);
+        else if (t === _F) drawFloor(c, r);
+        else if (t === _C) drawCarpet(c, r);
+        else if (t === _D) drawDoor(c, r);
+        else if (t === _b) drawBar(c, r);
+        cCtx.restore();
+      }
 
-function drawWall(c,r){
-  // Rich purple/maroon wall
-  cCtx.fillStyle='#3a1050'; cCtx.fillRect(0,0,S,S);
-  // Wallpaper stripe pattern
-  if(c%3===0){ cCtx.fillStyle='rgba(255,200,0,0.08)'; cCtx.fillRect(0,0,SCALE,S); }
-  // Wall top trim — gold
-  cCtx.fillStyle='#8a6020'; cCtx.fillRect(0,0,S,SCALE*2);
-  cCtx.fillStyle='#c09030'; cCtx.fillRect(0,0,S,SCALE);
-  // Neon strip on top row
-  if(r===0){
-    const nc=0.6+0.4*Math.sin(Date.now()/400+c*0.3);
-    cCtx.fillStyle=`rgba(255,64,192,${nc*0.7})`; cCtx.fillRect(0,S-SCALE*3,S,SCALE*3);
-    cCtx.fillStyle=`rgba(255,64,192,${nc*0.2})`; cCtx.fillRect(-S*0.3,0,S*1.6,S);
-  }
-  // Side wall shading
-  if(c===0||c===COLS-1){
-    cCtx.fillStyle='rgba(0,0,0,0.25)'; cCtx.fillRect(0,0,S,S);
-  }
-}
+      function drawWall(c, r) {
+        // Rich purple/maroon wall
+        cCtx.fillStyle = "#3a1050";
+        cCtx.fillRect(0, 0, S, S);
+        // Wallpaper stripe pattern
+        if (c % 3 === 0) {
+          cCtx.fillStyle = "rgba(255,200,0,0.08)";
+          cCtx.fillRect(0, 0, SCALE, S);
+        }
+        // Wall top trim — gold
+        cCtx.fillStyle = "#8a6020";
+        cCtx.fillRect(0, 0, S, SCALE * 2);
+        cCtx.fillStyle = "#c09030";
+        cCtx.fillRect(0, 0, S, SCALE);
+        // Neon strip on top row
+        if (r === 0) {
+          const nc = 0.6 + 0.4 * Math.sin(Date.now() / 400 + c * 0.3);
+          cCtx.fillStyle = `rgba(255,64,192,${nc * 0.7})`;
+          cCtx.fillRect(0, S - SCALE * 3, S, SCALE * 3);
+          cCtx.fillStyle = `rgba(255,64,192,${nc * 0.2})`;
+          cCtx.fillRect(-S * 0.3, 0, S * 1.6, S);
+        }
+        // Side wall shading
+        if (c === 0 || c === COLS - 1) {
+          cCtx.fillStyle = "rgba(0,0,0,0.25)";
+          cCtx.fillRect(0, 0, S, S);
+        }
+      }
 
-function drawFloor(c,r){
-  // Glossy dark purple/black checkerboard
-  const v=(c+r)%2;
-  cCtx.fillStyle=v?'#4a2258':'#321540'; cCtx.fillRect(0,0,S,S);
-  // Grout lines
-  cCtx.strokeStyle='rgba(255,180,255,0.12)'; cCtx.lineWidth=0.5;
-  cCtx.strokeRect(0,0,S,S);
-  // Reflection shimmer
-  if((c+r)%4===0){
-    cCtx.fillStyle='rgba(255,64,192,0.06)'; cCtx.fillRect(SCALE,SCALE,S-SCALE*2,S-SCALE*2);
-  }
-}
+      function drawFloor(c, r) {
+        // Glossy dark purple/black checkerboard
+        const v = (c + r) % 2;
+        cCtx.fillStyle = v ? "#4a2258" : "#321540";
+        cCtx.fillRect(0, 0, S, S);
+        // Grout lines
+        cCtx.strokeStyle = "rgba(255,180,255,0.12)";
+        cCtx.lineWidth = 0.5;
+        cCtx.strokeRect(0, 0, S, S);
+        // Reflection shimmer
+        if ((c + r) % 4 === 0) {
+          cCtx.fillStyle = "rgba(255,64,192,0.06)";
+          cCtx.fillRect(SCALE, SCALE, S - SCALE * 2, S - SCALE * 2);
+        }
+      }
 
-function drawCarpet(c,r){
-  // Deep red/crimson casino carpet
-  const v=(c+r)%2;
-  cCtx.fillStyle=v?'#8a1060':'#6a0848'; cCtx.fillRect(0,0,S,S);
-  // Gold diamond pattern
-  const gd=0.25+0.1*Math.sin(Date.now()/1200+c*0.5+r*0.3);
-  cCtx.fillStyle=`rgba(220,170,0,${gd})`;
-  cCtx.save(); cCtx.translate(S/2,S/2); cCtx.rotate(Math.PI/4);
-  cCtx.fillRect(-SCALE*2,-SCALE*2,SCALE*4,SCALE*4); cCtx.restore();
-  // Border lines
-  cCtx.strokeStyle='rgba(220,170,0,0.2)'; cCtx.lineWidth=0.5;
-  cCtx.strokeRect(SCALE,SCALE,S-SCALE*2,S-SCALE*2);
-}
+      function drawCarpet(c, r) {
+        // Deep red/crimson casino carpet
+        const v = (c + r) % 2;
+        cCtx.fillStyle = v ? "#8a1060" : "#6a0848";
+        cCtx.fillRect(0, 0, S, S);
+        // Gold diamond pattern
+        const gd = 0.25 + 0.1 * Math.sin(Date.now() / 1200 + c * 0.5 + r * 0.3);
+        cCtx.fillStyle = `rgba(220,170,0,${gd})`;
+        cCtx.save();
+        cCtx.translate(S / 2, S / 2);
+        cCtx.rotate(Math.PI / 4);
+        cCtx.fillRect(-SCALE * 2, -SCALE * 2, SCALE * 4, SCALE * 4);
+        cCtx.restore();
+        // Border lines
+        cCtx.strokeStyle = "rgba(220,170,0,0.2)";
+        cCtx.lineWidth = 0.5;
+        cCtx.strokeRect(SCALE, SCALE, S - SCALE * 2, S - SCALE * 2);
+      }
 
-function drawDoor(c,r){
-  // Door frame — visible wood
-  cCtx.fillStyle='#5a2808'; cCtx.fillRect(0,0,S,S);
-  cCtx.fillStyle='#3a1804'; cCtx.fillRect(SCALE*2,0,S-SCALE*4,S);
-  cCtx.fillStyle='#200e04'; cCtx.fillRect(SCALE*3,0,S-SCALE*6,S-SCALE*2);
-  // Pink neon glow inside door
-  const gl=0.4+0.25*Math.sin(Date.now()/600);
-  cCtx.fillStyle=`rgba(255,64,192,${gl*0.6})`; cCtx.fillRect(SCALE*3,0,S-SCALE*6,S-SCALE*2);
-  // Gold frame edge
-  cCtx.strokeStyle='#c09030'; cCtx.lineWidth=SCALE*1.5;
-  cCtx.strokeRect(SCALE*2,0,S-SCALE*4,S);
-  // EXIT text
-  cCtx.fillStyle=`rgba(255,64,192,${0.9+gl*0.1})`;
-  cCtx.font=`bold ${SCALE*2.2}px monospace`; cCtx.textAlign='center'; cCtx.textBaseline='middle';
-  cCtx.fillText('EXIT',S/2,S*0.55);
-}
+      function drawDoor(c, r) {
+        // Door frame — visible wood
+        cCtx.fillStyle = "#5a2808";
+        cCtx.fillRect(0, 0, S, S);
+        cCtx.fillStyle = "#3a1804";
+        cCtx.fillRect(SCALE * 2, 0, S - SCALE * 4, S);
+        cCtx.fillStyle = "#200e04";
+        cCtx.fillRect(SCALE * 3, 0, S - SCALE * 6, S - SCALE * 2);
+        // Pink neon glow inside door
+        const gl = 0.4 + 0.25 * Math.sin(Date.now() / 600);
+        cCtx.fillStyle = `rgba(255,64,192,${gl * 0.6})`;
+        cCtx.fillRect(SCALE * 3, 0, S - SCALE * 6, S - SCALE * 2);
+        // Gold frame edge
+        cCtx.strokeStyle = "#c09030";
+        cCtx.lineWidth = SCALE * 1.5;
+        cCtx.strokeRect(SCALE * 2, 0, S - SCALE * 4, S);
+        // EXIT text
+        cCtx.fillStyle = `rgba(255,64,192,${0.9 + gl * 0.1})`;
+        cCtx.font = `bold ${SCALE * 2.2}px monospace`;
+        cCtx.textAlign = "center";
+        cCtx.textBaseline = "middle";
+        cCtx.fillText("EXIT", S / 2, S * 0.55);
+      }
 
-function drawBar(c,r){
-  // Rich mahogany bar counter
-  cCtx.fillStyle='#5a2808'; cCtx.fillRect(0,0,S,S);
-  cCtx.fillStyle='#7a3818'; cCtx.fillRect(0,0,S,SCALE*4); // top surface
-  cCtx.fillStyle='#6a2e10'; cCtx.fillRect(0,SCALE*4,S,S-SCALE*4); // front face
-  // Wood grain
-  for(let i=0;i<3;i++){
-    cCtx.fillStyle='rgba(0,0,0,0.06)'; cCtx.fillRect(i*SCALE*4,0,SCALE,S);
-  }
-  // Gold edge strip
-  cCtx.fillStyle='#c09030'; cCtx.fillRect(0,SCALE*3,S,SCALE);
-  // Neon under-bar glow
-  const bg=0.3+0.2*Math.sin(Date.now()/700+c);
-  cCtx.fillStyle=`rgba(255,64,192,${bg})`; cCtx.fillRect(0,S-SCALE*2,S,SCALE*2);
-  // Bottles on bar top (row 3 only)
-  if(r===3&&c%2===1){
-    const bottleColors=['#2a8838','#882800','#283880','#681848'];
-    const bc=bottleColors[(c)%4];
-    cCtx.fillStyle=bc; cCtx.fillRect(S/2-SCALE*1.5,0,SCALE*3,SCALE*4);
-    cCtx.fillStyle='rgba(255,255,255,0.25)'; cCtx.fillRect(S/2-SCALE*1.5,0,SCALE,SCALE*4);
-    cCtx.fillStyle='#b0b0b0'; cCtx.fillRect(S/2-SCALE,0,SCALE*2,SCALE);
-    // Label
-    cCtx.fillStyle='rgba(255,255,255,0.6)'; cCtx.fillRect(S/2-SCALE*1.2,SCALE,SCALE*2.4,SCALE*2);
-  }
-}
+      function drawBar(c, r) {
+        // Rich mahogany bar counter
+        cCtx.fillStyle = "#5a2808";
+        cCtx.fillRect(0, 0, S, S);
+        cCtx.fillStyle = "#7a3818";
+        cCtx.fillRect(0, 0, S, SCALE * 4); // top surface
+        cCtx.fillStyle = "#6a2e10";
+        cCtx.fillRect(0, SCALE * 4, S, S - SCALE * 4); // front face
+        // Wood grain
+        for (let i = 0; i < 3; i++) {
+          cCtx.fillStyle = "rgba(0,0,0,0.06)";
+          cCtx.fillRect(i * SCALE * 4, 0, SCALE, S);
+        }
+        // Gold edge strip
+        cCtx.fillStyle = "#c09030";
+        cCtx.fillRect(0, SCALE * 3, S, SCALE);
+        // Neon under-bar glow
+        const bg = 0.3 + 0.2 * Math.sin(Date.now() / 700 + c);
+        cCtx.fillStyle = `rgba(255,64,192,${bg})`;
+        cCtx.fillRect(0, S - SCALE * 2, S, SCALE * 2);
+        // Bottles on bar top (row 3 only)
+        if (r === 3 && c % 2 === 1) {
+          const bottleColors = ["#2a8838", "#882800", "#283880", "#681848"];
+          const bc = bottleColors[c % 4];
+          cCtx.fillStyle = bc;
+          cCtx.fillRect(S / 2 - SCALE * 1.5, 0, SCALE * 3, SCALE * 4);
+          cCtx.fillStyle = "rgba(255,255,255,0.25)";
+          cCtx.fillRect(S / 2 - SCALE * 1.5, 0, SCALE, SCALE * 4);
+          cCtx.fillStyle = "#b0b0b0";
+          cCtx.fillRect(S / 2 - SCALE, 0, SCALE * 2, SCALE);
+          // Label
+          cCtx.fillStyle = "rgba(255,255,255,0.6)";
+          cCtx.fillRect(S / 2 - SCALE * 1.2, SCALE, SCALE * 2.4, SCALE * 2);
+        }
+      }
 
-function drawDecor(){
-  const t=Date.now();
-  // Chandeliers (at positions 5,11,16 in row 1)
-  for(const cx of [5,11,16]){
-    cCtx.save(); cCtx.translate(cx*S+S/2,S*1.5);
-    // Warm glow halo — very visible
-    const hg=cCtx.createRadialGradient(0,S*0.5,0,0,S*0.5,S*2.5);
-    hg.addColorStop(0,`rgba(255,210,80,${0.35+0.15*Math.sin(t/700)})`);
-    hg.addColorStop(0.4,`rgba(255,180,60,${0.15+0.08*Math.sin(t/700)})`);
-    hg.addColorStop(1,'rgba(255,180,60,0)');
-    cCtx.fillStyle=hg; cCtx.fillRect(-S*2.5,-S*0.5,S*5,S*5);
-    // Chain
-    cCtx.fillStyle='#d4b030'; cCtx.fillRect(-SCALE,0,SCALE*2,S*0.5);
-    // Bowl
-    cCtx.fillStyle='#d4b030'; cCtx.beginPath(); cCtx.arc(0,S*0.5,SCALE*5,0,Math.PI); cCtx.fill();
-    cCtx.fillStyle='#f0cc50'; cCtx.beginPath(); cCtx.arc(0,S*0.5,SCALE*4,0,Math.PI); cCtx.fill();
-    // Bright crystals
-    for(let i=-3;i<=3;i++){
-      const ca=0.7+0.3*Math.sin(t/400+i*0.7);
-      cCtx.fillStyle=`rgba(255,240,140,${ca})`;
-      cCtx.fillRect(i*SCALE*2-SCALE,S*0.5,SCALE*2,SCALE*(4+Math.abs(i)));
-    }
-    cCtx.restore();
-  }
-  // Neon sign "LUCKY TUESDAY" on back wall — bright pink glow
-  const nc=0.85+0.15*Math.abs(Math.sin(t/400));
-  cCtx.save();
-  cCtx.shadowColor='#ff40c0'; cCtx.shadowBlur=SCALE*12;
-  cCtx.globalAlpha=nc;
-  cCtx.fillStyle='#ff80e0';
-  cCtx.font=`bold ${SCALE*4}px "Bebas Neue",sans-serif`;
-  cCtx.textAlign='center'; cCtx.textBaseline='top';
-  cCtx.fillText('★ LUCKY TUESDAY ★',COLS*S/2,SCALE*4);
-  cCtx.shadowBlur=0; cCtx.globalAlpha=1;
-  cCtx.restore();
-  // Gold carpet border strip
-  const fb=0.5+0.2*Math.sin(t/600);
-  cCtx.strokeStyle=`rgba(220,170,0,${fb})`; cCtx.lineWidth=SCALE*1.5;
-  cCtx.strokeRect(S*1.5,S*5.5,S*19,S*7);
-}
-  // Neon floor strip around carpet border
-  const fs=0.15+0.1*Math.sin(t/800);
-  cCtx.strokeStyle=`rgba(255,64,192,${fs})`; cCtx.lineWidth=SCALE;
-  cCtx.strokeRect(1*S+SCALE,5*S+SCALE,20*S-SCALE*2,7*S-SCALE*2);
+      function drawDecor() {
+        const t = Date.now();
+        // Chandeliers (at positions 5,11,16 in row 1)
+        for (const cx of [5, 11, 16]) {
+          cCtx.save();
+          cCtx.translate(cx * S + S / 2, S * 1.5);
+          // Warm glow halo — very visible
+          const hg = cCtx.createRadialGradient(
+            0,
+            S * 0.5,
+            0,
+            0,
+            S * 0.5,
+            S * 2.5
+          );
+          hg.addColorStop(
+            0,
+            `rgba(255,210,80,${0.35 + 0.15 * Math.sin(t / 700)})`
+          );
+          hg.addColorStop(
+            0.4,
+            `rgba(255,180,60,${0.15 + 0.08 * Math.sin(t / 700)})`
+          );
+          hg.addColorStop(1, "rgba(255,180,60,0)");
+          cCtx.fillStyle = hg;
+          cCtx.fillRect(-S * 2.5, -S * 0.5, S * 5, S * 5);
+          // Chain
+          cCtx.fillStyle = "#d4b030";
+          cCtx.fillRect(-SCALE, 0, SCALE * 2, S * 0.5);
+          // Bowl
+          cCtx.fillStyle = "#d4b030";
+          cCtx.beginPath();
+          cCtx.arc(0, S * 0.5, SCALE * 5, 0, Math.PI);
+          cCtx.fill();
+          cCtx.fillStyle = "#f0cc50";
+          cCtx.beginPath();
+          cCtx.arc(0, S * 0.5, SCALE * 4, 0, Math.PI);
+          cCtx.fill();
+          // Bright crystals
+          for (let i = -3; i <= 3; i++) {
+            const ca = 0.7 + 0.3 * Math.sin(t / 400 + i * 0.7);
+            cCtx.fillStyle = `rgba(255,240,140,${ca})`;
+            cCtx.fillRect(
+              i * SCALE * 2 - SCALE,
+              S * 0.5,
+              SCALE * 2,
+              SCALE * (4 + Math.abs(i))
+            );
+          }
+          cCtx.restore();
+        }
+        // Neon sign "LUCKY TUESDAY" on back wall — bright pink glow
+        const nc = 0.85 + 0.15 * Math.abs(Math.sin(t / 400));
+        cCtx.save();
+        cCtx.shadowColor = "#ff40c0";
+        cCtx.shadowBlur = SCALE * 12;
+        cCtx.globalAlpha = nc;
+        cCtx.fillStyle = "#ff80e0";
+        cCtx.font = `bold ${SCALE * 4}px "Bebas Neue",sans-serif`;
+        cCtx.textAlign = "center";
+        cCtx.textBaseline = "top";
+        cCtx.fillText("★ LUCKY TUESDAY ★", (COLS * S) / 2, SCALE * 4);
+        cCtx.shadowBlur = 0;
+        cCtx.globalAlpha = 1;
+        cCtx.restore();
+        // Gold carpet border strip
+        const fb = 0.5 + 0.2 * Math.sin(t / 600);
+        cCtx.strokeStyle = `rgba(220,170,0,${fb})`;
+        cCtx.lineWidth = SCALE * 1.5;
+        cCtx.strokeRect(S * 1.5, S * 5.5, S * 19, S * 7);
+      }
+      // Neon floor strip around carpet border
+      const fs = 0.15 + 0.1 * Math.sin(t / 800);
+      cCtx.strokeStyle = `rgba(255,64,192,${fs})`;
+      cCtx.lineWidth = SCALE;
+      cCtx.strokeRect(
+        1 * S + SCALE,
+        5 * S + SCALE,
+        20 * S - SCALE * 2,
+        7 * S - SCALE * 2
+      );
 
+      function drawPlayer() {
+        const px = player.tx * S + S / 2,
+          py = player.ty * S + S / 2;
+        const bob = player.frame === 1 || player.frame === 3 ? -SCALE : 0;
+        const loff = player.frame === 1 ? 2 : player.frame === 3 ? -2 : 0;
+        const aoff = player.frame === 1 ? -2 : player.frame === 3 ? 2 : 0;
+        const p = SCALE;
+        cCtx.save();
+        cCtx.translate(px, py + bob);
+        cCtx.globalAlpha = 0.15;
+        cCtx.fillStyle = "#000";
+        cCtx.beginPath();
+        cCtx.ellipse(0, S * 0.38, S * 0.24, S * 0.065, 0, 0, Math.PI * 2);
+        cCtx.fill();
+        cCtx.globalAlpha = 1;
+        const fl = player.facing === "left";
+        if (fl) cCtx.scale(-1, 1);
+        cCtx.fillStyle = "#252018";
+        cCtx.fillRect(-5 * p, 4 * p, 4 * p, 8 * p + loff * p);
+        cCtx.fillRect(p, 4 * p, 4 * p, 8 * p - loff * p);
+        cCtx.fillStyle = "#101008";
+        cCtx.fillRect(-7 * p, 12 * p + loff * p, 7 * p, 3 * p);
+        cCtx.fillRect(p, 12 * p - loff * p, 7 * p, 3 * p);
+        cCtx.fillStyle = "#506030";
+        cCtx.fillRect(-9 * p, -5 * p + aoff * p, 4 * p, 10 * p);
+        cCtx.fillRect(5 * p, -5 * p - aoff * p, 4 * p, 10 * p);
+        cCtx.fillStyle = "#d0a880";
+        cCtx.fillRect(-9 * p, 4 * p + aoff * p, 4 * p, 3 * p);
+        cCtx.fillRect(5 * p, 4 * p - aoff * p, 4 * p, 3 * p);
+        cCtx.fillStyle = "#506030";
+        cCtx.fillRect(-6 * p, -8 * p, 12 * p, 13 * p);
+        cCtx.fillStyle = "#3a4a1a";
+        cCtx.fillRect(-6 * p, -8 * p, 3 * p, 6 * p);
+        cCtx.fillRect(3 * p, -8 * p, 3 * p, 6 * p);
+        cCtx.fillStyle = "#8a7050";
+        cCtx.fillRect(-p, -2 * p, 3 * p, 4 * p);
+        cCtx.fillStyle = "#1a1008";
+        cCtx.fillRect(-6 * p, 3 * p, 12 * p, 2 * p);
+        cCtx.fillStyle = "#c8a060";
+        cCtx.fillRect(-p, 3 * p, 2 * p, 2 * p);
+        cCtx.fillStyle = "#c8a070";
+        cCtx.fillRect(-2 * p, -9 * p, 4 * p, 2 * p);
+        cCtx.fillRect(-5 * p, -18 * p, 10 * p, 9 * p);
+        cCtx.fillStyle = "#231a0a";
+        cCtx.fillRect(-5 * p, -20 * p, 10 * p, 4 * p);
+        cCtx.fillRect(-6 * p, -18 * p, 2 * p, 6 * p);
+        cCtx.fillRect(4 * p, -18 * p, 3 * p, 5 * p);
+        if (player.facing !== "up") {
+          cCtx.fillStyle = "#ecddc0";
+          cCtx.fillRect(-4 * p, -16 * p, 3 * p, 3 * p);
+          cCtx.fillRect(p, -16 * p, 3 * p, 3 * p);
+          cCtx.fillStyle = "#1a0a04";
+          cCtx.fillRect(-3 * p, -15 * p, 2 * p, 2 * p);
+          cCtx.fillRect(p, -15 * p, 2 * p, 2 * p);
+          cCtx.fillStyle = "rgba(255,255,255,0.85)";
+          cCtx.fillRect(-3 * p, -16 * p, p, p);
+          cCtx.fillRect(p, -16 * p, p, p);
+          cCtx.fillStyle = "#b09070";
+          cCtx.fillRect(-4 * p, -13 * p, 3 * p, p);
+          cCtx.fillRect(p, -13 * p, 3 * p, p);
+          cCtx.fillStyle = "#6a5038";
+          cCtx.fillRect(-3 * p, -12 * p, 2 * p, p);
+          cCtx.fillRect(0, -12 * p, 2 * p, p);
+          cCtx.fillRect(-2 * p, -11 * p, 5 * p, p);
+        } else {
+          cCtx.fillStyle = "#231a0a";
+          cCtx.fillRect(-3 * p, -15 * p, 6 * p, 2 * p);
+        }
+        cCtx.restore();
+      }
 
-function drawPlayer(){
-  const px=player.tx*S+S/2, py=player.ty*S+S/2;
-  const bob=(player.frame===1||player.frame===3)?-SCALE:0;
-  const loff=player.frame===1?2:player.frame===3?-2:0;
-  const aoff=player.frame===1?-2:player.frame===3?2:0;
-  const p=SCALE;
-  cCtx.save(); cCtx.translate(px,py+bob);
-  cCtx.globalAlpha=0.15; cCtx.fillStyle='#000';
-  cCtx.beginPath(); cCtx.ellipse(0,S*0.38,S*0.24,S*0.065,0,0,Math.PI*2); cCtx.fill(); cCtx.globalAlpha=1;
-  const fl=player.facing==='left'; if(fl) cCtx.scale(-1,1);
-  cCtx.fillStyle='#252018'; cCtx.fillRect(-5*p,4*p,4*p,8*p+loff*p); cCtx.fillRect(p,4*p,4*p,8*p-loff*p);
-  cCtx.fillStyle='#101008'; cCtx.fillRect(-7*p,12*p+loff*p,7*p,3*p); cCtx.fillRect(p,12*p-loff*p,7*p,3*p);
-  cCtx.fillStyle='#506030'; cCtx.fillRect(-9*p,-5*p+aoff*p,4*p,10*p); cCtx.fillRect(5*p,-5*p-aoff*p,4*p,10*p);
-  cCtx.fillStyle='#d0a880'; cCtx.fillRect(-9*p,4*p+aoff*p,4*p,3*p); cCtx.fillRect(5*p,4*p-aoff*p,4*p,3*p);
-  cCtx.fillStyle='#506030'; cCtx.fillRect(-6*p,-8*p,12*p,13*p);
-  cCtx.fillStyle='#3a4a1a'; cCtx.fillRect(-6*p,-8*p,3*p,6*p); cCtx.fillRect(3*p,-8*p,3*p,6*p);
-  cCtx.fillStyle='#8a7050'; cCtx.fillRect(-p,-2*p,3*p,4*p);
-  cCtx.fillStyle='#1a1008'; cCtx.fillRect(-6*p,3*p,12*p,2*p);
-  cCtx.fillStyle='#c8a060'; cCtx.fillRect(-p,3*p,2*p,2*p);
-  cCtx.fillStyle='#c8a070'; cCtx.fillRect(-2*p,-9*p,4*p,2*p); cCtx.fillRect(-5*p,-18*p,10*p,9*p);
-  cCtx.fillStyle='#231a0a'; cCtx.fillRect(-5*p,-20*p,10*p,4*p); cCtx.fillRect(-6*p,-18*p,2*p,6*p); cCtx.fillRect(4*p,-18*p,3*p,5*p);
-  if(player.facing!=='up'){
-    cCtx.fillStyle='#ecddc0'; cCtx.fillRect(-4*p,-16*p,3*p,3*p); cCtx.fillRect(p,-16*p,3*p,3*p);
-    cCtx.fillStyle='#1a0a04'; cCtx.fillRect(-3*p,-15*p,2*p,2*p); cCtx.fillRect(p,-15*p,2*p,2*p);
-    cCtx.fillStyle='rgba(255,255,255,0.85)'; cCtx.fillRect(-3*p,-16*p,p,p); cCtx.fillRect(p,-16*p,p,p);
-    cCtx.fillStyle='#b09070'; cCtx.fillRect(-4*p,-13*p,3*p,p); cCtx.fillRect(p,-13*p,3*p,p);
-    cCtx.fillStyle='#6a5038'; cCtx.fillRect(-3*p,-12*p,2*p,p); cCtx.fillRect(0,-12*p,2*p,p); cCtx.fillRect(-2*p,-11*p,5*p,p);
-  } else {
-    cCtx.fillStyle='#231a0a'; cCtx.fillRect(-3*p,-15*p,6*p,2*p);
-  }
-  cCtx.restore();
-}
+      function drawHint() {
+        if (DialogSystem.isOpen() || isPanelOpen()) return;
+        const off = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+        const [ox, oy] = off[player.facing];
+        const cx = Math.floor(player.tx) + ox,
+          cy = Math.floor(player.ty) + oy;
+        const px = Math.floor(player.tx),
+          py = Math.floor(player.ty);
+        let nearObj = null;
+        for (const obj of OBJECTS) {
+          if (
+            cx >= obj.tx &&
+            cx < obj.tx + obj.w &&
+            cy >= obj.ty &&
+            cy < obj.ty + obj.h
+          ) {
+            nearObj = obj;
+            break;
+          }
+        }
+        const nearDoor = MAP[cy]?.[cx] === _D || MAP[py]?.[px] === _D;
+        if (!nearObj && !nearDoor) return;
+        const tx2 = nearObj ? (nearObj.tx + nearObj.w / 2) * S : cx * S + S / 2;
+        const ty2 = nearObj ? nearObj.ty * S - SCALE * 4 : cy * S - SCALE * 4;
+        const bw = S * 2.2,
+          pulse = 0.82 + 0.18 * Math.sin(Date.now() / 250);
+        cCtx.save();
+        cCtx.globalAlpha = pulse;
+        cCtx.fillStyle = "rgba(0,0,0,0.4)";
+        rRect(
+          cCtx,
+          tx2 - bw / 2 + SCALE,
+          ty2 - S * 0.35 + SCALE,
+          bw,
+          S * 0.56,
+          SCALE * 2
+        );
+        cCtx.fill();
+        cCtx.fillStyle = C.hintBg;
+        cCtx.strokeStyle = C.hintTx;
+        cCtx.lineWidth = SCALE;
+        rRect(cCtx, tx2 - bw / 2, ty2 - S * 0.35, bw, S * 0.56, SCALE * 2);
+        cCtx.fill();
+        cCtx.stroke();
+        cCtx.fillStyle = C.hintTx;
+        cCtx.font = `bold ${SCALE * 4}px monospace`;
+        cCtx.textAlign = "center";
+        cCtx.textBaseline = "middle";
+        cCtx.fillText(nearDoor ? "EXIT" : "E", tx2, ty2 - S * 0.08);
+        cCtx.restore();
+      }
 
-function drawHint(){
-  if(DialogSystem.isOpen()||isPanelOpen()) return;
-  const off={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
-  const [ox,oy]=off[player.facing];
-  const cx=Math.floor(player.tx)+ox,cy=Math.floor(player.ty)+oy;
-  const px=Math.floor(player.tx),py=Math.floor(player.ty);
-  let nearObj=null;
-  for(const obj of OBJECTS){
-    if(cx>=obj.tx&&cx<obj.tx+obj.w&&cy>=obj.ty&&cy<obj.ty+obj.h){nearObj=obj;break;}
-  }
-  const nearDoor=MAP[cy]?.[cx]===_D||MAP[py]?.[px]===_D;
-  if(!nearObj&&!nearDoor) return;
-  const tx2=nearObj?(nearObj.tx+nearObj.w/2)*S:cx*S+S/2;
-  const ty2=nearObj?nearObj.ty*S-SCALE*4:cy*S-SCALE*4;
-  const bw=S*2.2,pulse=0.82+0.18*Math.sin(Date.now()/250);
-  cCtx.save(); cCtx.globalAlpha=pulse;
-  cCtx.fillStyle='rgba(0,0,0,0.4)'; rRect(cCtx,tx2-bw/2+SCALE,ty2-S*.35+SCALE,bw,S*.56,SCALE*2); cCtx.fill();
-  cCtx.fillStyle=C.hintBg; cCtx.strokeStyle=C.hintTx; cCtx.lineWidth=SCALE;
-  rRect(cCtx,tx2-bw/2,ty2-S*.35,bw,S*.56,SCALE*2); cCtx.fill(); cCtx.stroke();
-  cCtx.fillStyle=C.hintTx; cCtx.font=`bold ${SCALE*4}px monospace`;
-  cCtx.textAlign='center'; cCtx.textBaseline='middle';
-  cCtx.fillText(nearDoor?'EXIT':'E',tx2,ty2-S*0.08);
-  cCtx.restore();
-}
+      function rRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.arcTo(x + w, y, x + w, y + r, r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+        ctx.lineTo(x + r, y + h);
+        ctx.arcTo(x, y + h, x, y + h - r, r);
+        ctx.lineTo(x, y + r);
+        ctx.arcTo(x, y, x + r, y, r);
+        ctx.closePath();
+      }
 
-function rRect(ctx,x,y,w,h,r){
-  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
-  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
-  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
-}
+      /* ── HUD ── */
+      function drawUI() {
+        uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+        const W = uiCanvas.width,
+          pad = 14;
+        uiCtx.fillStyle = "rgba(5,0,8,0.94)";
+        uiCtx.fillRect(0, 0, W, 50);
+        uiCtx.fillStyle = "rgba(255,64,192,0.8)";
+        uiCtx.fillRect(0, 48, W, 2);
+        uiCtx.font = 'bold 14px "IBM Plex Mono",monospace';
+        uiCtx.fillStyle = "#ffe600";
+        uiCtx.textBaseline = "middle";
+        uiCtx.textAlign = "left";
+        uiCtx.fillText(`💰 €${player.money}`, pad, 25);
+        uiCtx.fillText(`☠ DIGNITY: ${player.dignity || 0}%`, pad + 160, 25);
+        uiCtx.fillStyle = "#ff40c0";
+        uiCtx.fillText("🎰 LUCKY TUESDAY CASINO", pad + 360, 25);
+        uiCtx.textAlign = "right";
+        uiCtx.fillStyle = "rgba(255,255,255,0.28)";
+        uiCtx.font = '10px "IBM Plex Mono",monospace';
+        uiCtx.fillText("[E] Interact  [ESC] Exit", W - pad, 25);
+      }
 
-/* ── HUD ── */
-function drawUI(){
-  uiCtx.clearRect(0,0,uiCanvas.width,uiCanvas.height);
-  const W=uiCanvas.width,pad=14;
-  uiCtx.fillStyle='rgba(5,0,8,0.94)'; uiCtx.fillRect(0,0,W,50);
-  uiCtx.fillStyle='rgba(255,64,192,0.8)'; uiCtx.fillRect(0,48,W,2);
-  uiCtx.font='bold 14px "IBM Plex Mono",monospace';
-  uiCtx.fillStyle='#ffe600'; uiCtx.textBaseline='middle'; uiCtx.textAlign='left';
-  uiCtx.fillText(`💰 €${player.money}`,pad,25);
-  uiCtx.fillText(`☠ DIGNITY: ${player.dignity||0}%`,pad+160,25);
-  uiCtx.fillStyle='#ff40c0';
-  uiCtx.fillText('🎰 LUCKY TUESDAY CASINO',pad+360,25);
-  uiCtx.textAlign='right'; uiCtx.fillStyle='rgba(255,255,255,0.28)';
-  uiCtx.font='10px "IBM Plex Mono",monospace';
-  uiCtx.fillText('[E] Interact  [ESC] Exit',W-pad,25);
-}
-
-/* ── Bouncer portrait for DialogSystem ── */
-if(typeof DialogSystem!=='undefined'&&DialogSystem.PORTRAITS){
-  DialogSystem.PORTRAITS.bouncer=function(ctx,expr){
-    const cx=168/2,cy=168/2+20,p=3;
-    ctx.save(); ctx.translate(cx,cy);
-    ctx.fillStyle='rgba(5,0,12,0.95)'; ctx.fillRect(-84,-84,168,168);
-    // Giant body
-    ctx.fillStyle='#0a0a14'; ctx.fillRect(-11*p,-20*p,22*p,28*p);
-    ctx.fillStyle='rgba(255,64,192,0.05)'; ctx.fillRect(-11*p,-20*p,22*p,28*p);
-    ctx.fillStyle='#050508'; ctx.fillRect(-11*p,-20*p,6*p,15*p); ctx.fillRect(5*p,-20*p,6*p,15*p);
-    // Tie
-    ctx.fillStyle='#ff2850'; ctx.fillRect(-p,-20*p,2*p,14*p);
-    ctx.fillRect(-2*p,-6*p,4*p,3*p);
-    // Earpiece
-    ctx.fillStyle='#c0c0c0'; ctx.fillRect(-12*p,-10*p,2*p,3*p);
-    // Neck
-    ctx.fillStyle=C.npcSkin; ctx.fillRect(-4*p,-22*p,8*p,4*p);
-    // Head
-    ctx.fillStyle=C.npcSkin; ctx.fillRect(-8*p,-37*p,16*p,16*p);
-    // Buzzcut
-    ctx.fillStyle='#1a1008'; ctx.fillRect(-8*p,-42*p,16*p,7*p);
-    // Eyes
-    if(expr==='angry'){
-      ctx.fillStyle='#1a0a04'; ctx.fillRect(-6*p,-30*p,5*p,3*p); ctx.fillRect(p,-30*p,5*p,3*p);
-      ctx.fillStyle='#604030'; ctx.fillRect(-5*p,-29*p,3*p,2*p); ctx.fillRect(2*p,-29*p,3*p,2*p);
-      ctx.fillStyle='#1a0808'; ctx.fillRect(-6*p,-33*p,6*p,2*p); ctx.fillRect(0,-32*p,6*p,2*p);
-    } else {
-      ctx.fillStyle='#1a0a04'; ctx.fillRect(-6*p,-30*p,5*p,4*p); ctx.fillRect(p,-30*p,5*p,4*p);
-      ctx.fillStyle='#604030'; ctx.fillRect(-5*p,-29*p,3*p,2*p); ctx.fillRect(2*p,-29*p,3*p,2*p);
-    }
-    // Stern mouth
-    ctx.fillStyle='#8a6040'; ctx.fillRect(-4*p,-24*p,8*p,p);
-    ctx.restore();
-  };
-}
-</script>
-</body>
+      /* ── Bouncer portrait for DialogSystem ── */
+      if (typeof DialogSystem !== "undefined" && DialogSystem.PORTRAITS) {
+        DialogSystem.PORTRAITS.bouncer = function (ctx, expr) {
+          const cx = 168 / 2,
+            cy = 168 / 2 + 20,
+            p = 3;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.fillStyle = "rgba(5,0,12,0.95)";
+          ctx.fillRect(-84, -84, 168, 168);
+          // Giant body
+          ctx.fillStyle = "#0a0a14";
+          ctx.fillRect(-11 * p, -20 * p, 22 * p, 28 * p);
+          ctx.fillStyle = "rgba(255,64,192,0.05)";
+          ctx.fillRect(-11 * p, -20 * p, 22 * p, 28 * p);
+          ctx.fillStyle = "#050508";
+          ctx.fillRect(-11 * p, -20 * p, 6 * p, 15 * p);
+          ctx.fillRect(5 * p, -20 * p, 6 * p, 15 * p);
+          // Tie
+          ctx.fillStyle = "#ff2850";
+          ctx.fillRect(-p, -20 * p, 2 * p, 14 * p);
+          ctx.fillRect(-2 * p, -6 * p, 4 * p, 3 * p);
+          // Earpiece
+          ctx.fillStyle = "#c0c0c0";
+          ctx.fillRect(-12 * p, -10 * p, 2 * p, 3 * p);
+          // Neck
+          ctx.fillStyle = C.npcSkin;
+          ctx.fillRect(-4 * p, -22 * p, 8 * p, 4 * p);
+          // Head
+          ctx.fillStyle = C.npcSkin;
+          ctx.fillRect(-8 * p, -37 * p, 16 * p, 16 * p);
+          // Buzzcut
+          ctx.fillStyle = "#1a1008";
+          ctx.fillRect(-8 * p, -42 * p, 16 * p, 7 * p);
+          // Eyes
+          if (expr === "angry") {
+            ctx.fillStyle = "#1a0a04";
+            ctx.fillRect(-6 * p, -30 * p, 5 * p, 3 * p);
+            ctx.fillRect(p, -30 * p, 5 * p, 3 * p);
+            ctx.fillStyle = "#604030";
+            ctx.fillRect(-5 * p, -29 * p, 3 * p, 2 * p);
+            ctx.fillRect(2 * p, -29 * p, 3 * p, 2 * p);
+            ctx.fillStyle = "#1a0808";
+            ctx.fillRect(-6 * p, -33 * p, 6 * p, 2 * p);
+            ctx.fillRect(0, -32 * p, 6 * p, 2 * p);
+          } else {
+            ctx.fillStyle = "#1a0a04";
+            ctx.fillRect(-6 * p, -30 * p, 5 * p, 4 * p);
+            ctx.fillRect(p, -30 * p, 5 * p, 4 * p);
+            ctx.fillStyle = "#604030";
+            ctx.fillRect(-5 * p, -29 * p, 3 * p, 2 * p);
+            ctx.fillRect(2 * p, -29 * p, 3 * p, 2 * p);
+          }
+          // Stern mouth
+          ctx.fillStyle = "#8a6040";
+          ctx.fillRect(-4 * p, -24 * p, 8 * p, p);
+          ctx.restore();
+        };
+      }
+    </script>
+  </body>
 </html>
